@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mewarnai Gambar Anak - 3D</title>
+    <style>
+        body {
+            text-align: center;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        h1 {
+            color: #36f007;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            gap: 10px;
+        }
+
+        canvas {
+            width: 90vw;
+            /* Lebih besar dari sebelumnya */
+            height: 70vh;
+            /* Menyesuaikan dengan tinggi layar */
+            border: 5px solid #555;
+            background: white;
+            border-radius: 15px;
+            cursor: crosshair;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+        }
+
+        .button {
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .eraser {
+            background: #ff9800;
+            color: white;
+        }
+
+        .save,
+        .upload {
+            background: #673AB7;
+            color: white;
+        }
+
+        .undo,
+        .redo,
+        .reset,
+        .zoom-in,
+        .zoom-out {
+            background: #2196F3;
+            color: white;
+        }
+
+        .grid-toggle {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .button:hover {
+            opacity: 0.8;
+        }
+
+        #imagePicker {
+            margin: 10px;
+            font-size: 16px;
+        }
+
+        /* Tooltip styles */
+        .button[title] {
+            position: relative;
+        }
+
+        .button[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Responsive Styles for Android & iPad */
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            canvas {
+                width: 90%;
+                height: auto;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Mewarnai Gambar untuk Keyzia</h1>
+ </br>
+    <div class="toolbar">
+        <input type="color" id="colorPicker" title="Pilih Warna">
+        <input type="range" id="penSize" min="2" max="20" value="5" title="Pilih Ukuran Kuas">
+        <select id="brushPicker" title="Pilih Bentuk Kuas">
+            <option value="round">Kuas Bulat</option>
+            <option value="star">Kuas Bintang</option>
+            <option value="spray">Kuas Semprot</option>
+            <option value="square">Kuas Kotak</option>
+        </select>
+        <button class="button eraser" onclick="activateEraser()" title="Aktifkan Penghapus">Penghapus</button>
+        <button class="button undo" onclick="undo()" title="Undo">Undo</button>
+        <button class="button redo" onclick="redo()" title="Redo">Redo</button>
+        <button class="button reset" onclick="resetCanvas()" title="Reset Kanvas">Reset</button>
+        <button class="button zoom-in" onclick="zoomCanvas(1.2)" title="Zoom In">Zoom In</button>
+        <button class="button zoom-out" onclick="zoomCanvas(0.8)" title="Zoom Out">Zoom Out</button>
+        <button class="button grid-toggle" onclick="toggleGrid()" title="Tampilkan Grid">Tampilkan Grid</button>
+        <button class="button save" onclick="saveImage()" title="Simpan Gambar">Simpan</button>
+        <button class="button upload" onclick="shareToWhatsApp()" title="Bagikan ke WhatsApp">Bagikan ke
+            WhatsApp</button>
+        <input type="file" id="imagePicker" accept="image/*" onchange="loadImageFromFile(event)" title="Pilih Gambar">
+    </div>
+    <canvas id="drawingCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false, erasing = false;
+        let color = document.getElementById('colorPicker').value;
+        let penSize = document.getElementById('penSize').value;
+        let brushShape = document.getElementById('brushPicker').value;
+        let history = [], redoStack = [], scale = 1, showGrid = false;
+        let imageLoaded = false, imageData = null;
+        let gridColor = '#ccc', gridSpacing = 50;
+
+        function saveState() { history.push(canvas.toDataURL()); redoStack = []; }
+        function undo() { if (history.length) loadImage(history.pop(), true); }
+        function redo() { if (redoStack.length) loadImage(redoStack.pop(), true); }
+
+        function activateEraser() {
+            erasing = !erasing;
+            ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+            document.querySelector('.eraser').style.background = erasing ? "#FF5722" : "#FF9800";
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.lineWidth = penSize;
+            ctx.strokeStyle = erasing ? "rgba(0,0,0,1)" : color;
+            ctx.lineCap = "round";
+
+            if (brushShape === "star") drawStar(e.offsetX, e.offsetY);
+            else if (brushShape === "spray") drawSpray(e.offsetX, e.offsetY);
+            else if (brushShape === "square") drawSquare(e.offsetX, e.offsetY);
+            else {
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        function drawStar(x, y) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(x + Math.cos((18 + i * 72) / 180 * Math.PI) * 10, y - Math.sin((18 + i * 72) / 180 * Math.PI) * 10);
+                ctx.lineTo(x + Math.cos((54 + i * 72) / 180 * Math.PI) * 20, y - Math.sin((54 + i * 72) / 180 * Math.PI) * 20);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawSpray(x, y) {
+            let count = 30;
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * 2 * Math.PI;
+                let radius = Math.random() * 5;
+                ctx.fillStyle = color;
+                ctx.fillRect(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 2, 2);
+            }
+        }
+
+        function drawSquare(x, y) { ctx.fillStyle = color; ctx.fillRect(x - 5, y - 5, 10, 10); }
+
+        function resetCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); saveState(); }
+        function zoomCanvas(factor) { scale *= factor; canvas.style.transform = `scale(${scale})`; }
+        function toggleGrid() { showGrid = !showGrid; drawGrid(); }
+        function drawGrid() {
+            if (showGrid) {
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < canvas.width; i += gridSpacing) {
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                }
+                for (let i = 0; i < canvas.height; i += gridSpacing) {
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function saveImage() {
+            let link = document.createElement('a');
+            link.download = 'gambar.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function shareToWhatsApp() {
+            let imgData = canvas.toDataURL('image/png');
+            let link = `https://wa.me/?text=Check%20this%20out!%20${encodeURIComponent(imgData)}`;
+            window.open(link, '_blank');
+        }
+
+        function loadImageFromFile(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    imageLoaded = true;
+                    imageData = img;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    saveState();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadImage(dataURL, isUndo) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                if (!isUndo) saveState();
+            };
+            img.src = dataURL;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.7;
+            if (imageLoaded) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(imageData, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+
+        canvas.addEventListener('mousedown', (e) => { saveState(); drawing = true; ctx.beginPath(); draw(e); });
+        canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', draw);
+        document.getElementById('colorPicker').addEventListener('input', (e) => { color = e.target.value; });
+        document.getElementById('penSize').addEventListener('input', (e) => { penSize = e.target.value; });
+        document.getElementById('brushPicker').addEventListener('change', (e) => { brushShape = e.target.value; });
+    </script>
+</body>
+
+</html>
