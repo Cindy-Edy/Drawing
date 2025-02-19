@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Keyzia Draw - Aplikasi Mewarnai</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            text-align: center;
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            margin-top: 10px;
+        }
+
+        /* Gaya untuk dropdown */
+        .options-dropdown {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: inline-block;
+        }
+
+        .options-button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease;
+            margin-bottom: 10px;
+        }
+
+        .options-button:hover {
+            background-color: #4cae4c;
+        }
+
+        .options-content {
+            display: none;
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.8);
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            z-index: 1;
+            border-radius: 10px;
+            right: 0;
+            text-align: left;
+        }
+
+        .options-dropdown:hover .options-content {
+            display: block;
+        }
+
+        /* Gaya untuk tombol di dalam dropdown */
+        .dropdown-tool-button,
+        .dropdown-color-picker,
+        .dropdown-range-input {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 5px;
+            border: none;
+            background-color: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: none;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .dropdown-tool-button:hover {
+            background-color: #ddd;
+        }
+
+        .dropdown-color-picker {
+            height: 30px;
+        }
+
+        .dropdown-range-input {
+            width: 90%;
+        }
+
+        canvas {
+            width: 100vw;
+            height: calc(100vh - 80px);
+            border: 4px solid #777;
+            background: white;
+            border-radius: 12px;
+            cursor: crosshair;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+            margin: 0 auto;
+            display: block;
+        }
+
+        /* Hide the upload button */
+        #imageUpload {
+            display: none;
+        }
+
+        /* Gaya untuk media queries */
+        @media screen and (orientation: landscape) {
+            canvas {
+                height: calc(100vh - 80px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Keyzia Draw - Mari Berkreasi!</h1>
+
+    <div class="options-dropdown">
+        <button class="options-button"><i class="fas fa-cog"></i> Opsi</button>
+        <div class="options-content">
+            <label for="colorPicker"><i class="fas fa-palette"></i> Warna:</label>
+            <input type="color" id="colorPicker" class="dropdown-color-picker" value="#000000" title="Pilih Warna">
+
+            <label for="penSize"><i class="fas fa-paint-brush"></i> Ukuran Kuas:</label>
+            <input type="range" id="penSize" class="dropdown-range-input" min="1" max="25" value="5"
+                title="Ukuran Kuas">
+
+            <label for="eraserSize"><i class="fas fa-eraser"></i> Ukuran Penghapus:</label>
+            <input type="range" id="eraserSize" class="dropdown-range-input" min="1" max="50" value="10"
+                title="Ukuran Penghapus">
+
+            <button class="dropdown-tool-button" onclick="setBrushType('circle')"><i class="fas fa-circle"></i> Kuas
+                Lingkaran</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('square')"><i class="fas fa-square"></i> Kuas
+                Kotak</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('spray')"><i class="fas fa-spray-can"></i>
+                Kuas Semprot</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('heart')"><i class="fas fa-heart"></i> Kuas
+                Hati</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('star')"><i class="fas fa-star"></i> Kuas
+                Bintang</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('flower')"><i class="fas fa-fan"></i> Kuas
+                Bunga</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('leaf')"><i class="fas fa-leaf"></i> Kuas
+                Daun</button>
+            <button class="dropdown-tool-button" onclick="setBrushType('diamond')"><i class="fas fa-gem"></i> Kuas
+                Berlian</button>
+
+            <button class="dropdown-tool-button" id="eraserButton" title="Penghapus"><i
+                    class="fas fa-eraser"></i>  Penghapus</button>
+            <button class="dropdown-tool-button" id="undoButton" title="Undo"><i
+                    class="fas fa-undo"></i>  Undo</button>
+            <button class="dropdown-tool-button" id="redoButton" title="Redo"><i
+                    class="fas fa-redo"></i>  Redo</button>
+            <button class="dropdown-tool-button" id="clearButton" title="Bersihkan"><i
+                    class="fas fa-trash"></i>  Bersihkan</button>
+            <button class="dropdown-tool-button" id="gridButton" title="Tampilkan Grid"><i
+                    class="fas fa-border-all"></i>  Grid</button>
+            <button class="dropdown-tool-button" id="saveButton" title="Simpan"><i
+                    class="fas fa-save"></i>  Simpan</button>
+            <button class="dropdown-tool-button" id="uploadButton" title="Unggah Gambar"><i
+                    class="fas fa-upload"></i>  Unggah</button>
+            <input type="file" id="imageUpload" accept="image/*">
+            <button class="dropdown-tool-button" id="shareButton" title="Bagikan"><i
+                    class="fas fa-share-alt"></i>  Bagikan</button>
+        </div>
+    </div>
+
+    <canvas id="drawingCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isDrawing = false;
+        let isErasing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let color = document.getElementById('colorPicker').value;
+        let penSize = document.getElementById('penSize').value;
+        let eraserSize = document.getElementById('eraserSize').value;
+        let brushType = 'basic';
+        let gridEnabled = false;
+
+        let history = [];
+        let historyStep = -1;
+
+        // Mendapatkan offset canvas
+        function getCanvasOffset() {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top
+            };
+        }
+
+        // Mengonversi koordinat sentuh ke koordinat canvas
+        function getTouchPos(canvas, touchEvent) {
+            const canvasOffset = getCanvasOffset();
+            let x = touchEvent.touches[0].clientX - canvasOffset.left;
+            let y = touchEvent.touches[0].clientY - canvasOffset.top;
+
+            // Memperhitungkan DPI scaling
+            x *= canvas.width / canvas.offsetWidth;
+            y *= canvas.height / canvas.offsetHeight;
+
+            return {
+                x: x,
+                y: y
+            };
+        }
+
+        // Mengonversi koordinat mouse ke koordinat canvas
+        function getMousePos(canvas, mouseEvent) {
+            const canvasOffset = getCanvasOffset();
+            let x = mouseEvent.clientX - canvasOffset.left;
+            let y = mouseEvent.clientY - canvasOffset.top;
+
+            // Memperhitungkan DPI scaling
+            x *= canvas.width / canvas.offsetWidth;
+            y *= canvas.height / canvas.offsetHeight;
+
+            return {
+                x: x,
+                y: y
+            };
+        }
+
+        // Initialize Canvas Size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth; // Gunakan lebar tampilan canvas
+            canvas.height = canvas.offsetHeight; // Gunakan tinggi tampilan canvas
+            redrawHistory();
+            if (gridEnabled) drawGrid();
+        }
+
+        // Drawing history
+        function saveHistory() {
+            historyStep++;
+            if (historyStep < history.length) {
+                history.length = historyStep;
+            }
+            history.push(canvas.toDataURL());
+        }
+
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                redrawHistory();
+            }
+        }
+
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                redrawHistory();
+            }
+        }
+
+        function redrawHistory() {
+            if (history.length === 0) return; // Prevent error if history is empty
+
+            let img = new Image();
+            img.src = history[historyStep];
+            img.onload = function () {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+        }
+
+        // Grid
+        function drawGrid() {
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 0.5;
+            let gridSize = 50;
+            for (let i = gridSize; i < canvas.width; i += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = gridSize; i < canvas.height; i += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+        }
+
+        // Drawing functions
+        function draw(x, y) {
+            ctx.beginPath();
+            ctx.lineWidth = penSize;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = color;
+
+            if (isErasing) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = eraserSize;
+                ctx.strokeStyle = "rgba(0,0,0,1)";
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                switch (brushType) {
+                    case 'circle':
+                        ctx.arc(x, y, penSize / 2, 0, 2 * Math.PI);
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                        break;
+                    case 'square':
+                        ctx.fillRect(x - penSize / 2, y - penSize / 2, penSize, penSize);
+                        ctx.fillStyle = color;
+                        break;
+                    case 'spray':
+                        for (let i = 0; i < 20; i++) {
+                            let angle = Math.random() * Math.PI * 2;
+                            let radius = Math.random() * penSize;
+                            let sprayX = x + Math.cos(angle) * radius;
+                            let sprayY = y + Math.sin(angle) * radius;
+                            ctx.fillRect(sprayX, sprayY, 1, 1);
+                            ctx.fillStyle = color;
+                        }
+                        break;
+                    case 'heart':
+                        drawHeart(x, y, penSize);
+                        break;
+                    case 'star':
+                        drawStar(x, y, penSize);
+                        break;
+                    case 'flower':
+                        drawFlower(x, y, penSize);
+                        break;
+                    case 'leaf':
+                        drawLeaf(x, y, penSize);
+                        break;
+                    case 'diamond':
+                        drawDiamond(x, y, penSize);
+                        break;
+                    default:
+                        ctx.moveTo(lastX, lastY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        break;
+                }
+            }
+            lastX = x;
+            lastY = y;
+        }
+
+        function drawHeart(x, y, size) {
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y - size / 4);
+            ctx.bezierCurveTo(x, y - size / 2, x + size / 2, y - size / 2, x + size / 2, y);
+            ctx.bezierCurveTo(x + size / 2, y + size / 4, x, y + size / 2, x, y + size / 4);
+            ctx.bezierCurveTo(x, y + size / 2, x - size / 2, y + size / 4, x - size / 2, y);
+            ctx.bezierCurveTo(x - size / 2, y - size / 2, x, y - size / 2, x, y - size / 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawStar(x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.beginPath();
+            ctx.moveTo(0, -size / 2);
+            for (let i = 0; i < 5; i++) {
+                ctx.rotate(Math.PI / 5);
+                ctx.lineTo(0, -size / 2);
+                ctx.translate(0, -size / 2);
+                ctx.rotate(Math.PI / 10);
+                ctx.lineTo(0, size / 2);
+                ctx.translate(0, size / 2);
+                ctx.rotate(Math.PI / 5);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawFlower(x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                ctx.rotate(Math.PI / 3);
+                ctx.arc(0, size / 4, size / 4, 0, Math.PI * 2 / 3);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawLeaf(x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.PI / 4);
+            ctx.scale(1, 0.5);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size / 2, size / 4, 0, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawDiamond(x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.moveTo(0, -size / 2);
+            ctx.lineTo(size / 2, 0);
+            ctx.lineTo(0, size / 2);
+            ctx.lineTo(-size / 2, 0);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Touch event handlers
+        function handleStart(e) {
+            e.preventDefault();
+            const touchPos = getTouchPos(canvas, e);
+            lastX = touchPos.x;
+            lastY = touchPos.y;
+            isDrawing = true;
+            saveHistory();
+        }
+
+        function handleMove(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+
+            const touchPos = getTouchPos(canvas, e);
+            const x = touchPos.x;
+            const y = touchPos.y;
+            draw(x, y);
+        }
+
+        function handleEnd(e) {
+            e.preventDefault();
+            isDrawing = false;
+        }
+
+        // Mouse event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            const mousePos = getMousePos(canvas, e);
+            lastX = mousePos.x;
+            lastY = mousePos.y;
+            isDrawing = true;
+            saveHistory();
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const mousePos = getMousePos(canvas, e);
+            draw(mousePos.x, mousePos.y);
+        });
+
+        // Touch event listeners
+        canvas.addEventListener('touchstart', handleStart, false);
+        canvas.addEventListener('touchmove', handleMove, false);
+        canvas.addEventListener('touchend', handleEnd, false);
+        canvas.addEventListener('touchcancel', handleEnd, false);
+
+        // Toolbar Functionality
+        document.getElementById('colorPicker').addEventListener('change', (e) => color = e.target.value);
+        document.getElementById('penSize').addEventListener('change', (e) => penSize = e.target.value);
+        document.getElementById('eraserSize').addEventListener('change', (e) => eraserSize = e.target.value);
+
+        document.getElementById('eraserButton').addEventListener('click', () => isErasing = !isErasing);
+        document.getElementById('undoButton').addEventListener('click', undo);
+        document.getElementById('redoButton').addEventListener('click', redo);
+        document.getElementById('clearButton').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            saveHistory();
+        });
+
+        // Grid functionality
+        document.getElementById('gridButton').addEventListener('click', () => {
+            gridEnabled = !gridEnabled;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            redrawHistory(); // Redraw previous content
+            if (gridEnabled) drawGrid(); // Draw grid if enabled
+        });
+
+        document.getElementById('saveButton').addEventListener('click', () => {
+            let dataURL = canvas.toDataURL('image/png');
+            let link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'drawing.png';
+            link.click();
+        });
+
+        document.getElementById('uploadButton').addEventListener('click', () => {
+            document.getElementById('imageUpload').click();
+        });
+
+        document.getElementById('imageUpload').addEventListener('change', (e) => {
+            let file = e.target.files[0];
+            let reader = new FileReader();
+
+            reader.onload = function (event) {
+                let img = new Image();
+                img.onload = function () {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    saveHistory();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // Fungsi berbagi ke WhatsApp
+        document.getElementById('shareButton').addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const message = encodeURIComponent('Lihat lukisan saya!');
+            const whatsappURL = `whatsapp://send?text=${message}&image=${dataURL}`;
+
+            // Check if WhatsApp is installed (not reliable on all devices)
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                window.location.href = whatsappURL;
+            } else {
+                // Provide fallback: copy image URL or display QR code
+                navigator.clipboard.writeText(dataURL)
+                    .then(() => {
+                        alert('URL gambar telah disalin ke clipboard. Bagikan secara manual.');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                        alert('Tidak dapat menyalin URL. Coba bagikan secara manual.');
+                    });
+            }
+        });
+
+        // Set Brush Type Function
+        function setBrushType(type) {
+            brushType = type;
+        }
+
+        // Initialization
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            saveHistory();
+        });
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+
+</html>
