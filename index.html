@@ -54,22 +54,6 @@
             background-color: var(--primary-color-hover);
         }
 
-        /* Gaya untuk toolbar */
-        .toolbar {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            background: var(--toolbar-background);
-            padding: 15px;
-            border-radius: 15px;
-            gap: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 95%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
         /* Gaya untuk canvas */
         canvas {
             display: block;
@@ -101,6 +85,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 10px; /* Spasi antar tombol */
         }
 
         .tool-button:hover {
@@ -220,6 +205,7 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 2;
             display: none; /* Sembunyikan secara default */
+            width: 250px; /* Lebar panel opsi */
         }
 
         #optionsPanel.open {
@@ -228,16 +214,9 @@
 
         /* Media queries untuk berbagai ukuran layar */
         @media (max-width: 768px) {
-            .toolbar {
-                width: 100%;
-                padding: 10px;
-                gap: 8px;
-            }
-
-            .tool-button {
-                font-size: 14px;
-                padding: 8px 12px;
-                min-width: 60px;
+            #optionsPanel {
+                width: 90%; /* Lebar panel opsi pada layar kecil */
+                left: 5%; /* Pusatkan panel opsi pada layar kecil */
             }
         }
     </style>
@@ -277,10 +256,7 @@
                 <button onclick="setBrushType('star')" aria-label="Kuas Bintang">Bintang</button>
             </div>
         </div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="toolbar">
+         <!-- Tombol Perintah Dipindahkan ke Sini -->
         <button class="tool-button" id="eraserButton" title="Penghapus" aria-label="Penghapus">
             <i class="fas fa-eraser"></i> Penghapus
         </button>
@@ -626,6 +602,20 @@
         document.getElementById('penSize').addEventListener('change', (e) => state.penSize = e.target.value);
         document.getElementById('eraserSize').addEventListener('change', (e) => state.eraserSize = e.target.value);
 
+        // Set Brush Type Function
+        function setBrushType(type) {
+            state.brushType = type;
+        }
+
+        // Opsi Function
+        const optionsButton = document.getElementById('optionsButton');
+        const optionsPanel = document.getElementById('optionsPanel');
+
+        optionsButton.addEventListener('click', () => {
+            optionsPanel.classList.toggle('open');
+        });
+
+                // Menambahkan event listeners untuk tombol perintah di dalam panel opsi
         document.getElementById('eraserButton').addEventListener('click', () => state.isErasing = !state.isErasing);
         document.getElementById('fillButton').addEventListener('click', (e) => {
             fill(state.lastX, state.lastY);
@@ -692,19 +682,6 @@
                         alert("Gagal menyalin gambar ke clipboard.");
                     });
             }
-        });
-
-        // Set Brush Type Function
-        function setBrushType(type) {
-            state.brushType = type;
-        }
-
-        // Opsi Function
-        const optionsButton = document.getElementById('optionsButton');
-        const optionsPanel = document.getElementById('optionsPanel');
-
-        optionsButton.addEventListener('click', () => {
-            optionsPanel.classList.toggle('open');
         });
 
         // Initialization
