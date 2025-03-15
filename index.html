@@ -9,27 +9,57 @@
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
+        /* Variabel CSS untuk tema warna */
+        :root {
+            --primary-color: #5cb85c;
+            --primary-color-hover: #4cae4c;
+            --text-color: #333;
+            --background-color: linear-gradient(135deg, #a8edea, #fed6e3);
+            --toolbar-background: rgba(255, 255, 255, 0.7);
+        }
+
         body {
             text-align: center;
-            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            background: var(--background-color);
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden; /* Sembunyikan scrollbar */
         }
 
         h1 {
-            color: #333;
+            color: var(--text-color);
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
             margin-top: 20px;
         }
 
+        /* Gaya untuk tombol opsi */
+        #optionsButton {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: background-color 0.2s ease;
+            color: white;
+            background-color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            z-index: 2; /* Pastikan tombol di atas canvas */
+        }
+
+        #optionsButton:hover {
+            background-color: var(--primary-color-hover);
+        }
+
+        /* Gaya untuk toolbar */
         .toolbar {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--toolbar-background);
             padding: 15px;
             border-radius: 15px;
             gap: 12px;
@@ -40,21 +70,22 @@
             margin-right: auto;
         }
 
+        /* Gaya untuk canvas */
         canvas {
-            width: 95vw;
-            max-width: 100%;
-            height: auto;
-            aspect-ratio: 4 / 3;
-            border: 4px solid #777;
+            display: block;
+            /* Pastikan tidak ada margin atau padding tambahan */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background: white;
-            border-radius: 12px;
             cursor: crosshair;
             box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-            margin-left: auto;
-            margin-right: auto;
-            display: block;
+            z-index: 1; /* Pastikan canvas di bawah toolbar dan tombol opsi */
         }
 
+        /* Gaya untuk tombol alat */
         .tool-button {
             padding: 10px 15px;
             border: none;
@@ -63,20 +94,17 @@
             font-size: 15px;
             transition: background-color 0.2s ease;
             color: white;
-            background-color: #5cb85c;
+            background-color: var(--primary-color);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             flex-grow: 1;
             min-width: 80px;
             display: flex;
-            /* Tambahkan ini */
             align-items: center;
-            /* Dan ini */
             justify-content: center;
-            /* Dan ini */
         }
 
         .tool-button:hover {
-            background-color: #4cae4c;
+            background-color: var(--primary-color-hover);
         }
 
         .tool-button:active {
@@ -84,6 +112,7 @@
             box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
         }
 
+        /* Gaya untuk pemilih warna */
         .color-picker {
             width: 40px;
             height: 40px;
@@ -106,6 +135,7 @@
             border-radius: 50%;
         }
 
+        /* Gaya untuk input rentang */
         .range-input {
             width: 100px;
             cursor: pointer;
@@ -113,6 +143,7 @@
             min-width: 80px;
         }
 
+        /* Gaya untuk input pilih */
         .select-input {
             padding: 8px;
             border-radius: 5px;
@@ -122,7 +153,7 @@
             min-width: 80px;
         }
 
-        /* Style untuk tombol dropdown */
+        /* Gaya untuk dropdown */
         .dropdown {
             position: relative;
             display: inline-block;
@@ -136,19 +167,16 @@
             font-size: 15px;
             transition: background-color 0.2s ease;
             color: white;
-            background-color: #5cb85c;
+            background-color: var(--primary-color);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             min-width: 80px;
             display: flex;
-            /* Tambahkan ini */
             align-items: center;
-            /* Dan ini */
             justify-content: center;
-            /* Dan ini */
         }
 
         .dropdown-button:hover {
-            background-color: #4cae4c;
+            background-color: var(--primary-color-hover);
         }
 
         .dropdown-content {
@@ -181,140 +209,35 @@
             background-color: #ddd;
         }
 
-        /* Media queries untuk berbagai ukuran layar Android */
+        /* Panel Opsi */
+        #optionsPanel {
+            position: fixed;
+            top: 60px;
+            left: 10px;
+            background: var(--toolbar-background);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+            display: none; /* Sembunyikan secara default */
+        }
 
-        /* Layar sangat kecil (ponsel kecil) */
-        @media (max-width: 320px) {
+        #optionsPanel.open {
+            display: block; /* Tampilkan saat kelas 'open' ditambahkan */
+        }
+
+        /* Media queries untuk berbagai ukuran layar */
+        @media (max-width: 768px) {
             .toolbar {
-                width: 98%;
+                width: 100%;
                 padding: 10px;
                 gap: 8px;
             }
 
             .tool-button {
-                font-size: 13px;
+                font-size: 14px;
                 padding: 8px 12px;
                 min-width: 60px;
-            }
-        }
-
-        /* Layar ponsel standar */
-        @media (min-width: 321px) and (max-width: 480px) {
-            .toolbar {
-                width: 97%;
-                padding: 12px;
-                gap: 10px;
-            }
-
-            .tool-button {
-                font-size: 14px;
-                padding: 9px 13px;
-                min-width: 70px;
-            }
-        }
-
-        /* Layar ponsel besar dan tablet kecil (landscape) */
-        @media (min-width: 481px) and (max-width: 767px) {
-            .toolbar {
-                width: 96%;
-                padding: 14px;
-                gap: 11px;
-            }
-
-            .tool-button {
-                font-size: 15px;
-                padding: 10px 14px;
-                min-width: 75px;
-            }
-        }
-
-        /* Tablet (portrait) */
-        @media (min-width: 768px) and (max-width: 991px) {
-            .toolbar {
-                width: 95%;
-                padding: 15px;
-                gap: 12px;
-            }
-
-            .tool-button {
-                font-size: 16px;
-                padding: 11px 15px;
-                min-width: 80px;
-            }
-        }
-
-        /* Desktop dan tablet besar (landscape) */
-        @media (min-width: 992px) {
-            .toolbar {
-                width: 95%;
-                padding: 15px;
-                gap: 12px;
-            }
-
-            .tool-button {
-                font-size: 16px;
-                padding: 11px 15px;
-                min-width: 80px;
-            }
-        }
-
-        /* Khusus untuk orientasi landscape pada ponsel */
-        @media (max-height: 400px) {
-            .toolbar {
-                flex-direction: row;
-                /* Memaksa toolbar menjadi baris */
-                align-items: center;
-                justify-content: center;
-                /* Pusatkan tombol secara horizontal */
-            }
-
-            .tool-button {
-                margin-bottom: 0;
-                /* Hapus margin bawah tombol */
-                margin-right: 5px;
-                /* Tambahkan margin kanan untuk spasi */
-            }
-        }
-
-        /* Umum untuk layar sangat kecil (seperti jam tangan pintar atau perangkat sempit lainnya) */
-        @media (max-width: 280px) {
-            .tool-button {
-                font-size: 10px;
-                /* Ukuran font lebih kecil */
-                padding: 5px 8px;
-                /* Padding lebih kecil */
-                min-width: 40px;
-                /* Lebar minimum yang lebih kecil */
-            }
-
-            .toolbar {
-                padding: 5px;
-                /* Padding lebih kecil */
-                gap: 3px;
-                /* Jarak lebih kecil */
-            }
-
-            h1 {
-                font-size: 1.2em;
-                /* Ukuran font lebih kecil */
-                margin-top: 10px;
-                /* Margin lebih kecil */
-            }
-        }
-
-        /* Mode Potret untuk Tablet */
-        @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) {
-            .toolbar {
-                flex-direction: column;
-                /* Susun tombol secara vertikal */
-            }
-        }
-
-        /* Mode Lanskap untuk Tablet */
-        @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: landscape) {
-            .toolbar {
-                flex-direction: row;
-                /* Susun tombol secara horizontal */
             }
         }
     </style>
@@ -323,32 +246,46 @@
 <body>
     <h1>Keyzia Draw - Mari Berkreasi!</h1>
 
-    <div class="toolbar">
+    <button id="optionsButton">
+        <i class="fas fa-cog"></i> Opsi
+    </button>
+
+    <!-- Panel Opsi -->
+    <div id="optionsPanel">
+        <label for="colorPicker">Warna:</label>
         <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Pilih Warna"
-            aria-label="Pilih Warna">
+            aria-label="Pilih Warna"><br><br>
+
+        <label for="penSize">Ukuran Kuas:</label>
         <input type="range" id="penSize" class="range-input" min="1" max="25" value="5" title="Ukuran Kuas"
-            aria-label="Ukuran Kuas">
+            aria-label="Ukuran Kuas"><br><br>
+
+        <label for="eraserSize">Ukuran Penghapus:</label>
         <input type="range" id="eraserSize" class="range-input" min="1" max="50" value="10" title="Ukuran Penghapus"
-            aria-label="Ukuran Penghapus">
+            aria-label="Ukuran Penghapus"><br><br>
 
         <div class="dropdown">
             <button class="dropdown-button" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-paint-brush"></i> Kuas Lain
+                <i class="fas fa-paint-brush"></i> Jenis Kuas
             </button>
             <div class="dropdown-content" aria-label="Pilihan Kuas">
+                <button onclick="setBrushType('basic')" aria-label="Kuas Basic">Basic</button>
                 <button onclick="setBrushType('circle')" aria-label="Kuas Lingkaran">Lingkaran</button>
                 <button onclick="setBrushType('square')" aria-label="Kuas Kotak">Kotak</button>
                 <button onclick="setBrushType('spray')" aria-label="Kuas Semprot">Semprot</button>
                 <button onclick="setBrushType('heart')" aria-label="Kuas Hati">Hati</button>
                 <button onclick="setBrushType('star')" aria-label="Kuas Bintang">Bintang</button>
-                <button onclick="setBrushType('flower')" aria-label="Kuas Bunga">Bunga</button>
-                <button onclick="setBrushType('leaf')" aria-label="Kuas Daun">Daun</button>
-                <button onclick="setBrushType('diamond')" aria-label="Kuas Berlian">Berlian</button>
             </div>
         </div>
+    </div>
 
+    <!-- Toolbar -->
+    <div class="toolbar">
         <button class="tool-button" id="eraserButton" title="Penghapus" aria-label="Penghapus">
             <i class="fas fa-eraser"></i> Penghapus
+        </button>
+        <button class="tool-button" id="fillButton" title="Isi Warna" aria-label="Isi Warna">
+            <i class="fas fa-fill"></i> Isi Warna
         </button>
         <button class="tool-button" id="undoButton" title="Undo" aria-label="Undo">
             <i class="fas fa-undo"></i> Undo
@@ -371,9 +308,6 @@
         <input type="file" id="imageUpload" accept="image/*" style="display: none;" aria-hidden="true">
         <button class="tool-button" id="shareButton" title="Bagikan" aria-label="Bagikan">
             <i class="fas fa-share-alt"></i> Bagikan
-        </button>
-        <button class="tool-button" id="fillButton" title="Isi Warna" aria-label="Isi Warna">
-            <i class="fas fa-fill"></i> Isi Warna
         </button>
     </div>
 
@@ -400,8 +334,8 @@
 
         // Fungsi untuk mengatur ukuran canvas
         function resizeCanvas() {
-            canvas.width = window.innerWidth * 0.95;
-            canvas.height = window.innerWidth * 0.75;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             redrawHistory();
             if (state.gridEnabled) drawGrid();
         }
@@ -433,12 +367,16 @@
 
         // Fungsi untuk menggambar ulang riwayat
         function redrawHistory() {
-            let img = new Image();
-            img.src = state.history[state.historyStep];
-            img.onload = function () {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
+            if (state.history[state.historyStep]) {
+                let img = new Image();
+                img.src = state.history[state.historyStep];
+                img.onload = function () {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear jika tidak ada history
+            }
         }
 
         // Fungsi untuk menggambar grid
@@ -502,15 +440,6 @@
                     case 'star':
                         drawStar(x, y, state.penSize);
                         break;
-                    case 'flower':
-                        drawFlower(x, y, state.penSize);
-                        break;
-                    case 'leaf':
-                        drawLeaf(x, y, state.penSize);
-                        break;
-                    case 'diamond':
-                        drawDiamond(x, y, state.penSize);
-                        break;
                     default:
                         ctx.moveTo(state.lastX, state.lastY);
                         ctx.lineTo(x, y);
@@ -558,51 +487,6 @@
             ctx.restore();
         }
 
-        // Fungsi untuk menggambar bentuk bunga
-        function drawFlower(x, y, size) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                ctx.rotate(Math.PI / 3);
-                ctx.arc(0, size / 4, size / 4, 0, Math.PI * 2 / 3);
-            }
-            ctx.closePath();
-            ctx.fillStyle = state.color;
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // Fungsi untuk menggambar bentuk daun
-        function drawLeaf(x, y, size) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(Math.PI / 4);
-            ctx.scale(1, 0.5);
-            ctx.beginPath();
-            ctx.ellipse(0, 0, size / 2, size / 4, 0, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.fillStyle = state.color;
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // Fungsi untuk menggambar bentuk berlian
-        function drawDiamond(x, y, size) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(Math.PI / 4);
-            ctx.beginPath();
-            ctx.moveTo(0, -size / 2);
-            ctx.lineTo(size / 2, 0);
-            ctx.lineTo(0, size / 2);
-            ctx.lineTo(-size / 2, 0);
-            ctx.closePath();
-            ctx.fillStyle = state.color;
-            ctx.fill();
-            ctx.restore();
-        }
-
         // Fungsi untuk mengisi warna
         function fill(x, y) {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -610,7 +494,7 @@
             const targetColor = getColorAtPixel(data, x, y, canvas.width);
             const fillColor = hexToRgb(state.color);
 
-            if (colorsMatch(targetColor, fillColor)) return; // Warna sudah sama
+            if (colorsMatch(targetColor, fillColor)) return;
 
             const queue = [];
             queue.push({
@@ -650,6 +534,7 @@
             }
 
             ctx.putImageData(imageData, 0, 0);
+            saveHistory(); // Simpan history setelah pengisian warna
         }
 
         // Fungsi pembantu untuk mendapatkan warna pixel
@@ -669,12 +554,12 @@
             data[index] = color.r;
             data[index + 1] = color.g;
             data[index + 2] = color.b;
-            data[index + 3] = 255; // Atur alpha ke 255 (sepenuhnya buram)
+            data[index + 3] = 255;
         }
 
         // Fungsi pembantu untuk mencocokkan warna
         function colorsMatch(color1, color2) {
-            const tolerance = 5; // Toleransi untuk pencocokan warna
+            const tolerance = 5;
             return (
                 Math.abs(color1.r - color2.r) <= tolerance &&
                 Math.abs(color1.g - color2.g) <= tolerance &&
@@ -695,8 +580,8 @@
         // Touch event handlers
         function handleStart(e) {
             e.preventDefault();
-            state.lastX = e.touches[0].clientX - canvas.offsetLeft;
-            state.lastY = e.touches[0].clientY - canvas.offsetTop;
+            state.lastX = e.touches[0].clientX; // Menggunakan clientX dan clientY langsung
+            state.lastY = e.touches[0].clientY;
             state.isDrawing = true;
             saveHistory();
         }
@@ -705,8 +590,8 @@
             e.preventDefault();
             if (!state.isDrawing) return;
 
-            let x = e.touches[0].clientX - canvas.offsetLeft;
-            let y = e.touches[0].clientY - canvas.offsetTop;
+            let x = e.touches[0].clientX; // Menggunakan clientX dan clientY langsung
+            let y = e.touches[0].clientY;
             draw(x, y);
         }
 
@@ -717,8 +602,8 @@
 
         // Event Listeners
         canvas.addEventListener('mousedown', (e) => {
-            state.lastX = e.offsetX;
-            state.lastY = e.offsetY;
+            state.lastX = e.clientX; // Menggunakan clientX dan clientY langsung
+            state.lastY = e.clientY;
             state.isDrawing = true;
             saveHistory();
         });
@@ -727,7 +612,7 @@
         canvas.addEventListener('mouseout', () => state.isDrawing = false);
         canvas.addEventListener('mousemove', (e) => {
             if (!state.isDrawing) return;
-            draw(e.offsetX, e.offsetY);
+            draw(e.clientX, e.clientY); // Menggunakan clientX dan clientY langsung
         });
 
         // Touch event listeners
@@ -742,6 +627,9 @@
         document.getElementById('eraserSize').addEventListener('change', (e) => state.eraserSize = e.target.value);
 
         document.getElementById('eraserButton').addEventListener('click', () => state.isErasing = !state.isErasing);
+        document.getElementById('fillButton').addEventListener('click', (e) => {
+            fill(state.lastX, state.lastY);
+        });
         document.getElementById('undoButton').addEventListener('click', undo);
         document.getElementById('redoButton').addEventListener('click', redo);
         document.getElementById('clearButton').addEventListener('click', () => {
@@ -790,29 +678,34 @@
                 navigator.share({
                         title: 'Lukisan Saya',
                         text: 'Lihat lukisan saya!',
-                        url: dataURL
+                        url: dataURL,
                     })
                     .then(() => console.log('Berhasil dibagikan'))
                     .catch((error) => console.error('Kesalahan saat berbagi:', error));
             } else {
-                const shareDataURL = () => {
-                    navigator.clipboard.writeText(dataURL);
-                    alert("URL gambar telah disalin ke clipboard. Silakan bagikan secara manual.");
-                }
-                shareDataURL();
+                navigator.clipboard.writeText(dataURL)
+                    .then(() => {
+                        alert("Gambar berhasil disalin ke clipboard!");
+                    })
+                    .catch(err => {
+                        console.error('Gagal menyalin: ', err);
+                        alert("Gagal menyalin gambar ke clipboard.");
+                    });
             }
-        });
-
-        document.getElementById('fillButton').addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            fill(state.lastX, state.lastY);
-            saveHistory();
         });
 
         // Set Brush Type Function
         function setBrushType(type) {
             state.brushType = type;
         }
+
+        // Opsi Function
+        const optionsButton = document.getElementById('optionsButton');
+        const optionsPanel = document.getElementById('optionsPanel');
+
+        optionsButton.addEventListener('click', () => {
+            optionsPanel.classList.toggle('open');
+        });
 
         // Initialization
         window.addEventListener('load', () => {
