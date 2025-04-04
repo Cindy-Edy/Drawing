@@ -3,689 +3,823 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keyzia Draw - Aplikasi Mewarnai Modern</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Keyzia Draw - Modern (Debug)</title> <!-- Added (Debug) to title -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        /* Variabel CSS untuk tema warna */
         :root {
             --primary-color: #5cb85c;
             --primary-color-hover: #4cae4c;
             --text-color: #333;
-            --background-color: linear-gradient(135deg, #a8edea, #fed6e3);
-            --toolbar-background: rgba(255, 255, 255, 0.7);
+            --toolbar-background: rgba(255, 255, 255, 0.9); /* More opaque */
+            --border-color: #ccc;
+            --active-tool-bg: #e0e0e0;
+            --grid-color: #ddd;
         }
 
         body {
-            text-align: center;
-            background: var(--background-color);
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Sembunyikan scrollbar */
+            overflow: hidden; /* Prevent body scroll */
+            background-color: #f0f0f0;
         }
 
-        h1 {
-            color: var(--text-color);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-            margin-top: 20px;
-        }
+        h1 { display: none; } /* Hide H1 */
 
-        /* Gaya untuk tombol opsi */
         #optionsButton {
             position: fixed;
             top: 10px;
             left: 10px;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border: none;
             cursor: pointer;
             border-radius: 8px;
-            font-size: 15px;
-            transition: background-color 0.2s ease;
+            font-size: 14px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
             color: white;
             background-color: var(--primary-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            z-index: 2; /* Pastikan tombol di atas canvas */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Highest */
+            display: flex; /* Align icon and text */
+            align-items: center;
+            gap: 5px;
         }
 
         #optionsButton:hover {
             background-color: var(--primary-color-hover);
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
         }
+         #optionsButton i { transition: transform 0.3s ease; }
+         #optionsButton[aria-expanded="true"] i { transform: rotate(90deg); }
 
-        /* Gaya untuk canvas */
-        canvas {
-            display: block;
-            /* Pastikan tidak ada margin atau padding tambahan */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: white;
-            cursor: crosshair;
-            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-            z-index: 1; /* Pastikan canvas di bawah toolbar dan tombol opsi */
-        }
 
-        /* Gaya untuk tombol alat */
-        .tool-button {
-            padding: 10px 15px;
-            border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 15px;
-            transition: background-color 0.2s ease;
-            color: white;
-            background-color: var(--primary-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            flex-grow: 1;
-            min-width: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px; /* Spasi antar tombol */
-        }
-
-        .tool-button:hover {
-            background-color: var(--primary-color-hover);
-        }
-
-        .tool-button:active {
-            transform: translateY(1px);
-            box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Gaya untuk pemilih warna */
-        .color-picker {
-            width: 40px;
-            height: 40px;
-            border: none;
-            cursor: pointer;
-            border-radius: 50%;
-            padding: 0;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-color: #000;
-        }
-
-        .color-picker::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-
-        .color-picker::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
-        }
-
-        /* Gaya untuk input rentang */
-        .range-input {
-            width: 100px;
-            cursor: pointer;
-            flex-grow: 1;
-            min-width: 80px;
-        }
-
-        /* Gaya untuk input pilih */
-        .select-input {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            cursor: pointer;
-            flex-grow: 1;
-            min-width: 80px;
-        }
-
-        /* Gaya untuk dropdown */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-button {
-            padding: 10px 15px;
-            border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 15px;
-            transition: background-color 0.2s ease;
-            color: white;
-            background-color: var(--primary-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            min-width: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .dropdown-button:hover {
-            background-color: var(--primary-color-hover);
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            z-index: 1;
-            border-radius: 8px;
-        }
-
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
-
-        .dropdown-content button {
-            display: block;
-            width: 100%;
-            padding: 8px;
-            border: none;
-            background-color: transparent;
-            text-align: left;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .dropdown-content button:hover {
-            background-color: #ddd;
-        }
-
-        /* Panel Opsi */
         #optionsPanel {
             position: fixed;
-            top: 60px;
+            top: 50px;
             left: 10px;
             background: var(--toolbar-background);
+            backdrop-filter: blur(5px);
             padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            z-index: 2;
-            display: none; /* Sembunyikan secara default */
-            width: 250px; /* Lebar panel opsi */
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            width: 280px;
+            max-height: calc(100vh - 70px);
+            overflow-y: auto;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
         #optionsPanel.open {
-            display: block; /* Tampilkan saat kelas 'open' ditambahkan */
+            display: block; /* Shown when .open class is added */
         }
 
-        /* Media queries untuk berbagai ukuran layar */
-        @media (max-width: 768px) {
-            #optionsPanel {
-                width: 90%; /* Lebar panel opsi pada layar kecil */
-                left: 5%; /* Pusatkan panel opsi pada layar kecil */
-            }
+        .panel-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .panel-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .panel-section > label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: var(--text-color); }
+        .panel-section > label i { margin-right: 5px; width: 15px; text-align: center; }
+
+        .control-row { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
+        .control-row label { margin-bottom: 0; flex-shrink: 0; width: 20px; text-align: center;} /* Ensure consistent label width */
+
+        .color-picker { width: 35px; height: 35px; border: 1px solid var(--border-color); cursor: pointer; border-radius: 50%; padding: 0; appearance: none; -webkit-appearance: none; background-color: transparent; vertical-align: middle; flex-shrink: 0; }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: none; border-radius: 50%; }
+        .color-palette { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 5px; flex-grow: 1;}
+        .palette-color { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #ccc; cursor: pointer; display: inline-block; box-shadow: 0 0 3px rgba(0,0,0,0.1); transition: transform 0.1s ease; }
+        .palette-color:hover { transform: scale(1.15); }
+
+        .range-input { width: 100%; cursor: pointer; margin: 0 5px; }
+        .range-value { font-size: 13px; color: #555; min-width: 25px; text-align: right; }
+
+        .tool-button { display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; padding: 9px 12px; margin-bottom: 6px; border: 1px solid transparent; cursor: pointer; border-radius: 6px; font-size: 14px; transition: background-color 0.2s ease, border-color 0.2s ease; color: var(--text-color); background-color: #f9f9f9; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); text-align: left; box-sizing: border-box; }
+        .tool-button i:first-child { width: 18px; text-align: center; color: #555; } /* Icon alignment */
+        .tool-button:hover { background-color: #eee; border-color: #ddd; }
+        .tool-button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #f0f0f0; }
+        .tool-button.active-tool { background-color: var(--active-tool-bg); border: 1px solid #bbb; font-weight: bold; color: #000; }
+        .tool-button.active-tool i:first-child { color: var(--primary-color); }
+
+        /* Dropdown specific */
+        .dropdown { position: relative; margin-bottom: 6px; }
+        .dropdown .dropdown-button i.fa-chevron-down { margin-left: auto; transition: transform 0.3s ease; font-size: 0.8em; }
+        .dropdown.open .dropdown-button i.fa-chevron-down { transform: rotate(180deg); }
+        .dropdown-content { display: none; /* Hidden by default */ background-color: transparent; box-shadow: none; padding: 5px 0 0 25px; margin-top: -5px; border: none; }
+        .dropdown.open .dropdown-content { display: block; /* Shown when dropdown has .open */ }
+        .dropdown-content button { background-color: #fefefe; } /* Slightly different bg for dropdown items */
+        .dropdown-content button:hover { background-color: #f0f0f0; }
+        .dropdown-content button.active-tool { background-color: #d8e9d8; border-color: #a7c4a7; } /* Specific active style */
+
+
+        canvas { display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; cursor: crosshair; z-index: 1; }
+        #imageUpload { display: none; }
+
+        /* Media queries */
+        @media (max-width: 600px) {
+            #optionsPanel { width: calc(100% - 20px); left: 10px; top: 55px; max-height: calc(100vh - 70px); }
+            #optionsButton { padding: 6px 10px; font-size: 13px; }
         }
+        @media (max-height: 450px) { #optionsPanel { max-height: calc(100vh - 60px); } }
     </style>
 </head>
 
 <body>
-    <h1>Keyzia Draw - Mari Berkreasi!</h1>
 
-    <button id="optionsButton">
-        <i class="fas fa-cog"></i> Opsi
+    <button id="optionsButton" aria-label="Toggle Options Panel" aria-expanded="false">
+        <i class="fas fa-bars"></i> <span class="button-text">Opsi</span>
     </button>
 
-    <!-- Panel Opsi -->
     <div id="optionsPanel">
-        <label for="colorPicker">Warna:</label>
-        <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Pilih Warna"
-            aria-label="Pilih Warna"><br><br>
-
-        <label for="penSize">Ukuran Kuas:</label>
-        <input type="range" id="penSize" class="range-input" min="1" max="25" value="5" title="Ukuran Kuas"
-            aria-label="Ukuran Kuas"><br><br>
-
-        <label for="eraserSize">Ukuran Penghapus:</label>
-        <input type="range" id="eraserSize" class="range-input" min="1" max="50" value="10" title="Ukuran Penghapus"
-            aria-label="Ukuran Penghapus"><br><br>
-
-        <div class="dropdown">
-            <button class="dropdown-button" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-paint-brush"></i> Jenis Kuas
-            </button>
-            <div class="dropdown-content" aria-label="Pilihan Kuas">
-                <button onclick="setBrushType('basic')" aria-label="Kuas Basic">Basic</button>
-                <button onclick="setBrushType('circle')" aria-label="Kuas Lingkaran">Lingkaran</button>
-                <button onclick="setBrushType('square')" aria-label="Kuas Kotak">Kotak</button>
-                <button onclick="setBrushType('spray')" aria-label="Kuas Semprot">Semprot</button>
-                <button onclick="setBrushType('heart')" aria-label="Kuas Hati">Hati</button>
-                <button onclick="setBrushType('star')" aria-label="Kuas Bintang">Bintang</button>
+        <!-- Color Section -->
+        <div class="panel-section">
+            <label><i class="fas fa-palette"></i> Warna</label>
+            <div class="control-row">
+                 <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Pilih Warna">
+                 <div class="color-palette" id="colorPalette"></div>
             </div>
         </div>
-         <!-- Tombol Perintah Dipindahkan ke Sini -->
-        <button class="tool-button" id="eraserButton" title="Penghapus" aria-label="Penghapus">
-            <i class="fas fa-eraser"></i> Penghapus
-        </button>
-        
-        <button class="tool-button" id="undoButton" title="Undo" aria-label="Undo">
-            <i class="fas fa-undo"></i> Undo
-        </button>
-        <button class="tool-button" id="redoButton" title="Redo" aria-label="Redo">
-            <i class="fas fa-redo"></i> Redo
-        </button>
-        <button class="tool-button" id="clearButton" title="Bersihkan" aria-label="Bersihkan">
-            <i class="fas fa-trash"></i> Bersihkan
-        </button>
-        <button class="tool-button" id="gridButton" title="Tampilkan Grid" aria-label="Tampilkan Grid">
-            <i class="fas fa-border-all"></i> Grid
-        </button>
-        <button class="tool-button" id="saveButton" title="Simpan" aria-label="Simpan">
-            <i class="fas fa-save"></i> Simpan
-        </button>
-        <button class="tool-button" id="uploadButton" title="Unggah Gambar" aria-label="Unggah Gambar">
-            <i class="fas fa-upload"></i> Unggah
-        </button>
-        <input type="file" id="imageUpload" accept="image/*" style="display: none;" aria-hidden="true">
-    </input>
+
+        <!-- Size Section -->
+        <div class="panel-section">
+             <label><i class="fas fa-ruler-combined"></i> Ukuran</label>
+             <div class="control-row">
+                <label for="penSize" title="Ukuran Kuas"><i class="fas fa-paint-brush"></i></label>
+                <input type="range" id="penSize" class="range-input" min="1" max="50" value="5">
+                <span id="penSizeValue" class="range-value">5</span>
+             </div>
+              <div class="control-row">
+                 <label for="eraserSize" title="Ukuran Penghapus"><i class="fas fa-eraser"></i></label>
+                 <input type="range" id="eraserSize" class="range-input" min="1" max="100" value="10">
+                 <span id="eraserSizeValue" class="range-value">10</span>
+              </div>
+        </div>
+
+         <!-- Tools Section -->
+        <div class="panel-section">
+            <label><i class="fas fa-tools"></i> Alat</label>
+            <button class="tool-button" id="brushButton" title="Kuas (B)">
+                <i class="fas fa-paint-brush"></i> Kuas
+            </button>
+            <button class="tool-button" id="eraserButton" title="Penghapus (E)">
+                <i class="fas fa-eraser"></i> Penghapus
+            </button>
+            <button class="tool-button" id="fillButton" title="Isi Warna (F)">
+                <i class="fas fa-fill-drip"></i> Isi Warna
+            </button>
+        </div>
+
+        <!-- Brush Types Section -->
+        <div class="panel-section dropdown" id="brushTypeDropdown">
+             <button class="tool-button dropdown-button" aria-haspopup="true" aria-expanded="false">
+                 <i class="fas fa-shapes"></i> Jenis Kuas <i class="fas fa-chevron-down"></i>
+             </button>
+             <div class="dropdown-content" aria-label="Pilihan Kuas">
+                 <button class="tool-button" data-brush="basic"><i class="fas fa-pencil-alt"></i> Dasar</button>
+                 <button class="tool-button" data-brush="circle"><i class="fas fa-circle"></i> Lingkaran</button>
+                 <button class="tool-button" data-brush="square"><i class="fas fa-square"></i> Kotak</button>
+                 <button class="tool-button" data-brush="spray"><i class="fas fa-spray-can"></i> Semprot</button>
+                 <button class="tool-button" data-brush="heart"><i class="fas fa-heart"></i> Hati</button>
+                 <button class="tool-button" data-brush="star"><i class="fas fa-star"></i> Bintang</button>
+                 <button class="tool-button" data-brush="flower"><i class="fas fa-fan"></i> Bunga</button>
+                 <button class="tool-button" data-brush="leaf"><i class="fas fa-leaf"></i> Daun</button>
+                 <button class="tool-button" data-brush="diamond"><i class="fas fa-gem"></i> Berlian</button>
+             </div>
+         </div>
+
+        <!-- Actions Section -->
+        <div class="panel-section">
+            <label><i class="fas fa-cogs"></i> Tindakan</label>
+            <button class="tool-button" id="undoButton" title="Undo (Ctrl+Z)" disabled> <!-- Start disabled -->
+                <i class="fas fa-undo"></i> Undo
+            </button>
+            <button class="tool-button" id="redoButton" title="Redo (Ctrl+Y)" disabled> <!-- Start disabled -->
+                <i class="fas fa-redo"></i> Redo
+            </button>
+            <button class="tool-button" id="gridButton" title="Grid (G)">
+                <i class="fas fa-border-all"></i> Grid
+            </button>
+            <button class="tool-button" id="clearButton" title="Bersihkan">
+                <i class="fas fa-trash"></i> Bersihkan
+            </button>
+        </div>
+
+        <!-- File Operations Section -->
+        <div class="panel-section">
+             <label><i class="fas fa-file-alt"></i> File</label>
+            <button class="tool-button" id="saveButton" title="Simpan (Ctrl+S)">
+                <i class="fas fa-save"></i> Simpan PNG
+            </button>
+            <button class="tool-button" id="uploadButton" title="Unggah Gambar">
+                <i class="fas fa-upload"></i> Unggah
+            </button>
+             <input type="file" id="imageUpload" accept="image/*">
+            <button class="tool-button" id="shareButton" title="Bagikan">
+                <i class="fas fa-share-alt"></i> Bagikan
+            </button>
+        </div>
     </div>
 
     <canvas id="drawingCanvas" aria-label="Kanvas untuk menggambar"></canvas>
 
     <script>
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
+        // Strict mode helps catch common errors
+        "use strict";
 
-        // State aplikasi
+        // === DOM Elements ===
+        // (Get elements after DOM is loaded)
+        let canvas, ctx, optionsButton, optionsPanel, colorPicker, colorPaletteContainer,
+            penSizeSlider, penSizeValueSpan, eraserSizeSlider, eraserSizeValueSpan,
+            brushButton, eraserButton, fillButton, brushTypeDropdown, brushTypeButtons = [], // Initialize as empty array
+            undoButton, redoButton, gridButton, clearButton, saveButton, uploadButton,
+            imageUploadInput, shareButton;
+
+        // === State ===
         const state = {
             isDrawing: false,
-            isErasing: false,
+            currentTool: 'brush',
             lastX: 0,
             lastY: 0,
-            color: document.getElementById('colorPicker').value,
-            penSize: document.getElementById('penSize').value,
-            eraserSize: document.getElementById('eraserSize').value,
+            color: '#000000',
+            penSize: 5,
+            eraserSize: 10,
             brushType: 'basic',
             gridEnabled: false,
             history: [],
             historyStep: -1,
+            maxHistory: 30,
+            isPanelOpen: false,
+            dpr: window.devicePixelRatio || 1, // Store DPR
         };
 
-        // Fungsi untuk mengatur ukuran canvas
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            redrawHistory();
-            if (state.gridEnabled) drawGrid();
-        }
+        // === Initialization ===
+        function initializeApp() {
+            console.log("initializeApp: Starting.");
 
-        // Fungsi untuk menyimpan riwayat gambar
-        function saveHistory() {
-            state.historyStep++;
-            if (state.historyStep < state.history.length) {
-                state.history.length = state.historyStep;
+            // Get Elements - Crucial to do this *after* DOM is ready
+            canvas = document.getElementById('drawingCanvas');
+            optionsButton = document.getElementById('optionsButton');
+            optionsPanel = document.getElementById('optionsPanel');
+            colorPicker = document.getElementById('colorPicker');
+            colorPaletteContainer = document.getElementById('colorPalette');
+            penSizeSlider = document.getElementById('penSize');
+            penSizeValueSpan = document.getElementById('penSizeValue');
+            eraserSizeSlider = document.getElementById('eraserSize');
+            eraserSizeValueSpan = document.getElementById('eraserSizeValue');
+            brushButton = document.getElementById('brushButton');
+            eraserButton = document.getElementById('eraserButton');
+            fillButton = document.getElementById('fillButton');
+            brushTypeDropdown = document.getElementById('brushTypeDropdown');
+            // Query for brush type buttons *inside* the dropdown content specifically
+            if (brushTypeDropdown) {
+                 brushTypeButtons = brushTypeDropdown.querySelectorAll('.dropdown-content .tool-button');
+            } else {
+                console.error("Brush Type Dropdown container not found!");
             }
-            state.history.push(canvas.toDataURL());
+            undoButton = document.getElementById('undoButton');
+            redoButton = document.getElementById('redoButton');
+            gridButton = document.getElementById('gridButton');
+            clearButton = document.getElementById('clearButton');
+            saveButton = document.getElementById('saveButton');
+            uploadButton = document.getElementById('uploadButton');
+            imageUploadInput = document.getElementById('imageUpload');
+            shareButton = document.getElementById('shareButton');
+
+            // Check if canvas exists
+             if (!canvas || !canvas.getContext) {
+                 console.error("Canvas element not found or context not supported.");
+                 alert("Error: Canvas tidak dapat dimuat.");
+                 return; // Stop initialization if canvas fails
+             }
+             ctx = canvas.getContext('2d', { willReadFrequently: true });
+             console.log("initializeApp: Canvas context obtained.");
+
+
+            // Check if essential elements exist before proceeding
+            if (!optionsButton || !optionsPanel || !colorPicker || !penSizeSlider || !eraserSizeSlider || !brushButton || !eraserButton || !fillButton || !undoButton || !redoButton || !gridButton || !clearButton || !saveButton || !uploadButton || !shareButton) {
+                 console.error("initializeApp: One or more essential UI elements not found!");
+                 // You might want to display an error to the user here
+                 // return; // Optionally stop if critical elements are missing
+             } else {
+                 console.log("initializeApp: All essential UI elements found.");
+             }
+
+
+            // Initialize state from HTML values
+            state.color = colorPicker ? colorPicker.value : '#000000';
+            state.penSize = penSizeSlider ? penSizeSlider.value : 5;
+            state.eraserSize = eraserSizeSlider ? eraserSizeSlider.value : 10;
+            if (penSizeValueSpan) penSizeValueSpan.textContent = state.penSize;
+            if (eraserSizeValueSpan) eraserSizeValueSpan.textContent = state.eraserSize;
+            state.dpr = window.devicePixelRatio || 1; // Update DPR
+
+            try {
+                createColorPalette();
+                resizeCanvas(); // Initial resize
+                setupEventListeners();
+                updateToolUI(); // Set initial UI state
+                saveHistory(); // Save initial blank state
+                console.log("initializeApp: Setup complete. DPR:", state.dpr);
+             } catch (error) {
+                 console.error("Error during initialization:", error);
+                 alert("Terjadi kesalahan saat memulai aplikasi.");
+             }
         }
 
-        // Fungsi untuk melakukan undo
+        function createColorPalette() {
+            console.log("createColorPalette: Running");
+            if (!colorPaletteContainer) {
+                 console.warn("Color Palette Container not found."); return;
+            }
+            colorPaletteContainer.innerHTML = ''; // Clear existing palette if any
+            const defaultColors = ['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#4CAF50', '#8B4513'];
+            defaultColors.forEach(c => {
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'palette-color'; // Use className for simplicity
+                colorDiv.style.backgroundColor = c;
+                colorDiv.title = `Pilih ${c}`;
+                colorDiv.setAttribute('aria-label', `Pilih warna ${c}`);
+                colorDiv.addEventListener('click', () => {
+                     if (colorPicker) colorPicker.value = c;
+                     state.color = c;
+                     console.log("Palette color selected:", state.color);
+                });
+                colorPaletteContainer.appendChild(colorDiv);
+            });
+        }
+
+        // === Canvas & Drawing ===
+        function resizeCanvas() {
+             console.log("resizeCanvas: Resizing...");
+             if (!canvas || !ctx) return;
+             state.dpr = window.devicePixelRatio || 1; // Update DPR on resize too
+             canvas.width = Math.round(window.innerWidth * state.dpr);
+             canvas.height = Math.round(window.innerHeight * state.dpr);
+             canvas.style.width = `${window.innerWidth}px`;
+             canvas.style.height = `${window.innerHeight}px`;
+             ctx.scale(state.dpr, state.dpr); // Apply scale transformation
+             redrawHistory(); // Redraw content
+             if (state.gridEnabled) drawGrid();
+             console.log(`resizeCanvas: Complete. Size ${canvas.width}x${canvas.height} (CSS: ${canvas.style.width}x${canvas.style.height}), DPR: ${state.dpr}`);
+        }
+
+        function getPos(event) {
+            if (!canvas) return { x: 0, y: 0 }; // Graceful exit if canvas isn't ready
+            const rect = canvas.getBoundingClientRect();
+            let clientX = 0, clientY = 0;
+
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else if (event.clientX !== undefined) { // Check if it's a mouse event
+                clientX = event.clientX;
+                clientY = event.clientY;
+            } else {
+                console.warn("getPos: Could not determine clientX/Y from event", event);
+            }
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            // console.log(`getPos: Raw(${clientX}, ${clientY}), Rect(${rect.left}, ${rect.top}), Result(${x}, ${y})`); // Debug logging
+            return { x, y };
+        }
+
+        function draw(x, y) {
+             if (!state.isDrawing || !ctx) return;
+
+             const currentSize = (state.currentTool === 'eraser' ? state.eraserSize : state.penSize) * state.dpr;
+             const canvasX = x * state.dpr;
+             const canvasY = y * state.dpr;
+             const lastCanvasX = state.lastX * state.dpr;
+             const lastCanvasY = state.lastY * state.dpr;
+
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+
+             try { // Add try-catch around drawing operations
+                 if (state.currentTool === 'eraser') {
+                     ctx.globalCompositeOperation = 'destination-out';
+                     ctx.lineWidth = currentSize;
+                     ctx.beginPath();
+                     ctx.moveTo(lastCanvasX, lastCanvasY);
+                     ctx.lineTo(canvasX, canvasY);
+                     ctx.stroke();
+                 } else {
+                     ctx.globalCompositeOperation = 'source-over';
+                     ctx.strokeStyle = state.color;
+                     ctx.fillStyle = state.color;
+                     ctx.lineWidth = currentSize;
+
+                     switch (state.brushType) {
+                          case 'circle': ctx.beginPath(); ctx.arc(canvasX, canvasY, currentSize / 2, 0, Math.PI * 2); ctx.fill(); break;
+                          case 'square': ctx.fillRect(canvasX - currentSize / 2, canvasY - currentSize / 2, currentSize, currentSize); break;
+                          case 'spray': const density = 30; for (let i = 0; i < density; i++) { let angle = Math.random() * Math.PI * 2; let radius = Math.random() * currentSize / 1.5; ctx.fillRect(canvasX + Math.cos(angle) * radius, canvasY + Math.sin(angle) * radius, state.dpr, state.dpr); } break;
+                          case 'heart': drawHeart(canvasX, canvasY, currentSize); break;
+                          case 'star': drawStar(canvasX, canvasY, currentSize); break;
+                          case 'flower': drawFlower(canvasX, canvasY, currentSize); break;
+                          case 'leaf': drawLeaf(canvasX, canvasY, currentSize); break;
+                          case 'diamond': drawDiamond(canvasX, canvasY, currentSize); break;
+                          case 'basic': default: ctx.beginPath(); ctx.moveTo(lastCanvasX, lastCanvasY); ctx.lineTo(canvasX, canvasY); ctx.stroke(); break;
+                     }
+                 }
+             } catch (error) {
+                 console.error("Error during draw operation:", error, "State:", state);
+             }
+
+             state.lastX = x;
+             state.lastY = y;
+         }
+
+        // --- Shape Drawing Helpers --- (Ensure these use state.color correctly)
+        function drawHeart(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.beginPath(); const t=y-size*.3,b=y+size*.7,w=size*1.1,c1x=x+w*.5,c1y=y-size*.6,c2x=x-w*.5,c2y=y-size*.6; ctx.moveTo(x,t); ctx.bezierCurveTo(x,c1y,c1x,c1y,c1x,y); ctx.bezierCurveTo(c1x,y+size*.4,x,b,x,b); ctx.bezierCurveTo(x,b,c2x,y+size*.4,c2x,y); ctx.bezierCurveTo(c2x,c2y,x,c2y,x,t); ctx.closePath(); ctx.fill(); ctx.restore(); }
+        function drawStar(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.beginPath(); ctx.moveTo(0,-size/2); for(let i=0;i<5;i++){ ctx.rotate(Math.PI/5); ctx.lineTo(0,-(size/4)); ctx.rotate(Math.PI/5); ctx.lineTo(0,-size/2); } ctx.closePath(); ctx.fill(); ctx.restore(); }
+        function drawFlower(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.beginPath(); const n=6,r=size/3,a=(Math.PI*2)/n; for(let i=0;i<n;i++){ const px=Math.cos(a*i)*r*.8,py=Math.sin(a*i)*r*.8; ctx.moveTo(px+r,py); ctx.arc(px,py,r,0,Math.PI*2); } ctx.fill(); ctx.restore(); }
+        function drawLeaf(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.rotate(Math.PI/4); const w=size*.8,h=size*.4; ctx.beginPath(); ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+        function drawDiamond(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.beginPath(); ctx.moveTo(0,-size/2); ctx.lineTo(size/2.5,0); ctx.lineTo(0,size/2); ctx.lineTo(-size/2.5,0); ctx.closePath(); ctx.fill(); ctx.restore(); }
+
+
+        // === Fill Tool ===
+        function floodFill(startX, startY) {
+            console.log(`floodFill: Starting at CSS(${startX}, ${startY})`);
+             if (!ctx) { console.error("floodFill: No context"); return false; }
+
+             const canvasX = Math.floor(startX * state.dpr);
+             const canvasY = Math.floor(startY * state.dpr);
+             const canvasWidth = canvas.width;
+             const canvasHeight = canvas.height;
+
+             if (canvasX < 0 || canvasX >= canvasWidth || canvasY < 0 || canvasY >= canvasHeight) { console.log("floodFill: Start point out of bounds."); return false; }
+
+             let imageData;
+             try {
+                 imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+             } catch (e) {
+                 console.error("floodFill: Failed to getImageData.", e);
+                 // Handle potential security errors (tainted canvas) if loading external images
+                 alert("Tidak dapat mengisi warna pada gambar ini karena alasan keamanan.");
+                 return false;
+             }
+             const data = imageData.data;
+             const targetColor = getPixelColor(data, canvasWidth, canvasX, canvasY);
+             const fillColorRgb = hexToRgb(state.color);
+
+             if (!fillColorRgb) { console.error("floodFill: Invalid fill color", state.color); return false; }
+             if (colorsMatch(targetColor, fillColorRgb)) { console.log("floodFill: Target matches fill color."); return false; }
+
+             const stack = [[canvasX, canvasY]];
+             const visited = new Set();
+             let iterations = 0;
+             const maxIterations = canvasWidth * canvasHeight * 1.5; // Safety limit
+
+             while (stack.length > 0) {
+                 iterations++;
+                 if (iterations > maxIterations) { console.error("floodFill: Max iterations reached, aborting."); break; }
+
+                 const [x, y] = stack.pop();
+                 const pixelKey = `${x},${y}`;
+
+                 if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight || visited.has(pixelKey)) continue;
+
+                 const currentColor = getPixelColor(data, canvasWidth, x, y);
+                 if (!colorsMatch(currentColor, targetColor)) continue;
+
+                 setPixelColor(data, canvasWidth, x, y, fillColorRgb);
+                 visited.add(pixelKey);
+
+                 stack.push([x + 1, y]); stack.push([x - 1, y]);
+                 stack.push([x, y + 1]); stack.push([x, y - 1]);
+             }
+
+             ctx.putImageData(imageData, 0, 0);
+             console.log(`floodFill: Complete. ${visited.size} pixels filled in ${iterations} iterations.`);
+             return true;
+         }
+        // Fill Helpers
+        function getPixelColor(d,w,x,y){ const i=(y*w+x)*4; return [d[i],d[i+1],d[i+2],d[i+3]]; }
+        function setPixelColor(d,w,x,y,c){ const i=(y*w+x)*4; d[i]=c.r; d[i+1]=c.g; d[i+2]=c.b; d[i+3]=c.a??255; }
+        function colorsMatch(c1,c2){ const t=15; return Math.abs(c1[0]-c2.r)<=t && Math.abs(c1[1]-c2.g)<=t && Math.abs(c1[2]-c2.b)<=t && Math.abs(c1[3]-(c2.a??255))<=t; }
+        function hexToRgb(h){ h=h.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,(m,r,g,b)=>r+r+g+g+b+b); const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16),a:255}:null; }
+
+
+        // === History ===
+        function saveHistory() {
+             console.log("saveHistory: Saving state. Current step:", state.historyStep);
+             if (!canvas) return; // Don't save if canvas isn't ready
+             if (state.historyStep < state.history.length - 1) {
+                 state.history.length = state.historyStep + 1; // Clear redo steps
+             }
+             if (state.history.length >= state.maxHistory) {
+                 state.history.shift(); // Remove oldest
+             } else {
+                 state.historyStep++;
+             }
+             try {
+                 state.history[state.historyStep] = canvas.toDataURL('image/png');
+                 console.log("saveHistory: State saved. New step:", state.historyStep, "History length:", state.history.length);
+                 updateUndoRedoButtons();
+             } catch (error) {
+                 console.error("saveHistory: Failed to save canvas state (toDataURL failed).", error);
+                 // Could be due to tainted canvas or other issues
+                 if (state.historyStep > 0) state.historyStep--; // Revert step count if save failed
+             }
+         }
         function undo() {
+            console.log("undo: Triggered. Current step:", state.historyStep);
             if (state.historyStep > 0) {
                 state.historyStep--;
-                redrawHistory();
+                redrawFromHistory(state.historyStep);
+                updateUndoRedoButtons();
+            } else {
+                console.log("undo: No more steps to undo.");
             }
         }
-
-        // Fungsi untuk melakukan redo
         function redo() {
-            if (state.historyStep < state.history.length - 1) {
-                state.historyStep++;
-                redrawHistory();
-            }
-        }
+            console.log("redo: Triggered. Current step:", state.historyStep);
+             if (state.historyStep < state.history.length - 1) {
+                 state.historyStep++;
+                 redrawFromHistory(state.historyStep);
+                 updateUndoRedoButtons();
+             } else {
+                 console.log("redo: No more steps to redo.");
+             }
+         }
+         function redrawFromHistory(step) {
+             console.log("redrawFromHistory: Redrawing step", step);
+             if (!ctx) { console.error("redrawFromHistory: No context."); return; }
+             if (step < 0 || step >= state.history.length || !state.history[step]) {
+                 console.warn(`redrawFromHistory: Invalid step or history data for step ${step}. Clearing canvas.`);
+                 const cssWidth = canvas.width / state.dpr;
+                 const cssHeight = canvas.height / state.dpr;
+                 ctx.clearRect(0, 0, cssWidth, cssHeight);
+                 if(step < 0 && state.history.length === 0) {
+                     // If history is truly empty, reset step index
+                     state.historyStep = -1;
+                 }
+                 updateUndoRedoButtons(); // Ensure buttons are disabled if history empty
+                 return;
+             }
 
-        // Fungsi untuk menggambar ulang riwayat
-        function redrawHistory() {
-            if (state.history[state.historyStep]) {
-                let img = new Image();
-                img.src = state.history[state.historyStep];
-                img.onload = function () {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                };
-            } else {
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear jika tidak ada history
-            }
-        }
+             let img = new Image();
+             img.onload = () => {
+                 console.log("redrawFromHistory: Image loaded for step", step);
+                 const cssWidth = canvas.width / state.dpr;
+                 const cssHeight = canvas.height / state.dpr;
+                 ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear scaled canvas
+                 ctx.drawImage(img, 0, 0, cssWidth, cssHeight); // Draw scaled image
+                 if (state.gridEnabled) drawGrid(); // Re-apply grid if needed
+                 console.log("redrawFromHistory: Redraw complete for step", step);
+             };
+             img.onerror = () => console.error(`redrawFromHistory: Failed to load history image for step ${step}`);
+             img.src = state.history[step];
+         }
+         function redrawHistory() { redrawFromHistory(state.historyStep); }
+         function updateUndoRedoButtons() {
+             if (undoButton) undoButton.disabled = state.historyStep <= 0;
+             if (redoButton) redoButton.disabled = state.historyStep >= state.history.length - 1;
+             // console.log("updateUndoRedoButtons: Step:", state.historyStep, "Length:", state.history.length, "Undo:", undoButton?.disabled, "Redo:", redoButton?.disabled);
+         }
 
-        // Fungsi untuk menggambar grid
+        // === Grid ===
         function drawGrid() {
-            ctx.strokeStyle = '#ccc';
-            ctx.lineWidth = 0.5;
-            let gridSize = 50;
-            for (let i = gridSize; i < canvas.width; i += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
-            }
-            for (let i = gridSize; i < canvas.height; i += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(canvas.width, i);
-                ctx.stroke();
-            }
-        }
-
-        // Fungsi untuk menggambar
-        function draw(x, y) {
-            ctx.beginPath();
-            ctx.lineWidth = state.penSize;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = state.color;
-
-            if (state.isErasing) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.lineWidth = state.eraserSize;
-                ctx.strokeStyle = "rgba(0,0,0,1)";
-                ctx.moveTo(state.lastX, state.lastY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-                switch (state.brushType) {
-                    case 'circle':
-                        ctx.arc(x, y, state.penSize / 2, 0, 2 * Math.PI);
-                        ctx.fillStyle = state.color;
-                        ctx.fill();
-                        break;
-                    case 'square':
-                        ctx.fillRect(x - state.penSize / 2, y - state.penSize / 2, state.penSize, state.penSize);
-                        ctx.fillStyle = state.color;
-                        break;
-                    case 'spray':
-                        for (let i = 0; i < 20; i++) {
-                            let angle = Math.random() * Math.PI * 2;
-                            let radius = Math.random() * state.penSize;
-                            let sprayX = x + Math.cos(angle) * radius;
-                            let sprayY = y + Math.sin(angle) * radius;
-                            ctx.fillRect(sprayX, sprayY, 1, 1);
-                            ctx.fillStyle = state.color;
-                        }
-                        break;
-                    case 'heart':
-                        drawHeart(x, y, state.penSize);
-                        break;
-                    case 'star':
-                        drawStar(x, y, state.penSize);
-                        break;
-                    default:
-                        ctx.moveTo(state.lastX, state.lastY);
-                        ctx.lineTo(x, y);
-                        ctx.stroke();
-                        break;
-                }
-            }
-            state.lastX = x;
-            state.lastY = y;
-        }
-
-        // Fungsi untuk menggambar bentuk hati
-        function drawHeart(x, y, size) {
+            // console.log("drawGrid: Drawing grid.");
+            if (!ctx || !state.gridEnabled) return;
+            const cssWidth = canvas.width / state.dpr;
+            const cssHeight = canvas.height / state.dpr;
+            const gridSize = 30;
             ctx.save();
-            ctx.fillStyle = state.color;
-            ctx.beginPath();
-            ctx.moveTo(x, y - size / 4);
-            ctx.bezierCurveTo(x, y - size / 2, x + size / 2, y - size / 2, x + size / 2, y);
-            ctx.bezierCurveTo(x + size / 2, y + size / 4, x, y + size / 2, x, y + size / 4);
-            ctx.bezierCurveTo(x, y + size / 2, x - size / 2, y + size / 4, x - size / 2, y);
-            ctx.bezierCurveTo(x - size / 2, y - size / 2, x, y - size / 2, x, y - size / 4);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-        }
+            ctx.strokeStyle = 'var(--grid-color)';
+            ctx.lineWidth = 0.5; // Keep grid lines thin regardless of DPR
+            ctx.globalCompositeOperation = 'source-over'; // Ensure grid draws on top correctly
+            ctx.setLineDash([2, 2]); // Optional: Dashed grid lines
 
-        // Fungsi untuk menggambar bentuk bintang
-        function drawStar(x, y, size) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.beginPath();
-            ctx.moveTo(0, -size / 2);
-            for (let i = 0; i < 5; i++) {
-                ctx.rotate(Math.PI / 5);
-                ctx.lineTo(0, -size / 2);
-                ctx.translate(0, -size / 2);
-                ctx.rotate(Math.PI / 10);
-                ctx.lineTo(0, size / 2);
-                ctx.translate(0, size / 2);
-                ctx.rotate(Math.PI / 5);
+            for (let x = gridSize; x < cssWidth; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cssHeight); ctx.stroke();
             }
-            ctx.closePath();
-            ctx.fillStyle = state.color;
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // Fungsi untuk mengisi warna
-        function fill(x, y) {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            const targetColor = getColorAtPixel(data, x, y, canvas.width);
-            const fillColor = hexToRgb(state.color);
-
-            if (colorsMatch(targetColor, fillColor)) return;
-
-            const queue = [];
-            queue.push({
-                x: x,
-                y: y
-            });
-
-            while (queue.length > 0) {
-                const {
-                    x,
-                    y
-                } = queue.shift();
-
-                if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
-
-                const currentColor = getColorAtPixel(data, x, y, canvas.width);
-                if (!colorsMatch(currentColor, targetColor)) continue;
-
-                setColorAtPixel(data, x, y, canvas.width, fillColor);
-
-                queue.push({
-                    x: x + 1,
-                    y: y
-                });
-                queue.push({
-                    x: x - 1,
-                    y: y
-                });
-                queue.push({
-                    x: x,
-                    y: y + 1
-                });
-                queue.push({
-                    x: x,
-                    y: y - 1
-                });
+            for (let y = gridSize; y < cssHeight; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cssWidth, y); ctx.stroke();
             }
-
-            ctx.putImageData(imageData, 0, 0);
-            saveHistory(); // Simpan history setelah pengisian warna
+            ctx.restore(); // Restore line dash, stroke style etc.
         }
 
-        // Fungsi pembantu untuk mendapatkan warna pixel
-        function getColorAtPixel(data, x, y, width) {
-            const index = (x + y * width) * 4;
-            return {
-                r: data[index],
-                g: data[index + 1],
-                b: data[index + 2],
-                a: data[index + 3]
-            };
+        // === UI Updates ===
+        function toggleOptionsPanel() {
+            console.log("toggleOptionsPanel: Current state:", state.isPanelOpen);
+            if (!optionsPanel || !optionsButton) return;
+            state.isPanelOpen = !state.isPanelOpen;
+            optionsPanel.classList.toggle('open', state.isPanelOpen);
+            optionsButton.setAttribute('aria-expanded', state.isPanelOpen);
+            const buttonTextSpan = optionsButton.querySelector('.button-text');
+            if(buttonTextSpan) buttonTextSpan.textContent = state.isPanelOpen ? 'Tutup' : 'Opsi';
+            // Icon change handled by CSS rotation on aria-expanded
+            console.log("toggleOptionsPanel: New state:", state.isPanelOpen);
         }
 
-        // Fungsi pembantu untuk mengatur warna pixel
-        function setColorAtPixel(data, x, y, width, color) {
-            const index = (x + y * width) * 4;
-            data[index] = color.r;
-            data[index + 1] = color.g;
-            data[index + 2] = color.b;
-            data[index + 3] = 255;
+        function updateToolUI() {
+             console.log("updateToolUI: Updating for tool:", state.currentTool, "Brush type:", state.brushType, "Grid:", state.gridEnabled);
+             if (!brushButton || !eraserButton || !fillButton || !gridButton) {
+                 console.warn("updateToolUI: Some tool buttons not found.");
+             }
+             // Update tool buttons
+             if(brushButton) brushButton.classList.toggle('active-tool', state.currentTool === 'brush');
+             if(eraserButton) eraserButton.classList.toggle('active-tool', state.currentTool === 'eraser');
+             if(fillButton) fillButton.classList.toggle('active-tool', state.currentTool === 'fill');
+
+             // Update brush type buttons
+             brushTypeButtons.forEach(btn => {
+                 if (!btn) return;
+                 const type = btn.dataset.brush;
+                 btn.classList.toggle('active-tool', state.currentTool === 'brush' && state.brushType === type);
+             });
+
+             // Update canvas cursor
+             if (canvas) {
+                 switch (state.currentTool) {
+                     case 'brush': canvas.style.cursor = 'crosshair'; break;
+                     case 'eraser': canvas.style.cursor = 'cell'; break;
+                     case 'fill': canvas.style.cursor = 'copy'; break;
+                     default: canvas.style.cursor = 'default';
+                 }
+             }
+
+             // Update grid button state
+             if(gridButton) gridButton.classList.toggle('active-tool', state.gridEnabled);
         }
 
-        // Fungsi pembantu untuk mencocokkan warna
-        function colorsMatch(color1, color2) {
-            const tolerance = 5;
-            return (
-                Math.abs(color1.r - color2.r) <= tolerance &&
-                Math.abs(color1.g - color2.g) <= tolerance &&
-                Math.abs(color1.b - color2.b) <= tolerance
-            );
-        }
-
-        // Fungsi pembantu untuk mengubah heksadesimal menjadi RGB
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : null;
-        }
-
-        // Touch event handlers
+        // === Event Handlers ===
         function handleStart(e) {
+            // console.log("handleStart: Event type:", e.type);
             e.preventDefault();
-            state.lastX = e.touches[0].clientX; // Menggunakan clientX dan clientY langsung
-            state.lastY = e.touches[0].clientY;
-            state.isDrawing = true;
-            saveHistory();
-        }
+            const { x, y } = getPos(e);
+            // console.log(`handleStart: Pos (${x}, ${y}), Tool: ${state.currentTool}`);
 
+            if (state.currentTool === 'fill') {
+                 if (floodFill(x, y)) {
+                     saveHistory();
+                 }
+             } else {
+                 state.isDrawing = true;
+                 state.lastX = x;
+                 state.lastY = y;
+                 if (state.currentTool === 'brush' && state.brushType !== 'basic') {
+                     draw(x, y); // Draw initial shape for non-line brushes
+                 }
+                 saveHistory(); // Save at start of stroke/erase
+             }
+        }
         function handleMove(e) {
             e.preventDefault();
-            if (!state.isDrawing) return;
-
-            let x = e.touches[0].clientX; // Menggunakan clientX dan clientY langsung
-            let y = e.touches[0].clientY;
+            if (!state.isDrawing || state.currentTool === 'fill') return;
+            const { x, y } = getPos(e);
+            // console.log(`handleMove: Pos (${x}, ${y})`); // Can be very noisy
             draw(x, y);
         }
-
         function handleEnd(e) {
+            // console.log("handleEnd: Event type:", e.type);
             e.preventDefault();
-            state.isDrawing = false;
+            if (state.isDrawing) {
+                state.isDrawing = false;
+                 // console.log("handleEnd: Drawing stopped.");
+                 // Optional: If you get stray lines, uncommenting this might help
+                 // if(ctx) ctx.beginPath();
+             }
+        }
+        function handleToolChange(newTool) {
+            console.log("handleToolChange: Changing tool to", newTool);
+            if (state.currentTool === newTool) return; // No change
+            state.currentTool = newTool;
+            updateToolUI();
+        }
+        function handleBrushTypeChange(newType) {
+            console.log("handleBrushTypeChange: Changing brush type to", newType);
+             if (!newType) { console.warn("handleBrushTypeChange: Invalid type received."); return; }
+            if (state.brushType === newType && state.currentTool === 'brush') return; // No change
+
+            state.brushType = newType;
+            state.currentTool = 'brush'; // Ensure brush tool is active
+            updateToolUI();
+
+            // Optional: Close dropdown after selection
+            if (brushTypeDropdown && brushTypeDropdown.classList.contains('open')) {
+                 brushTypeDropdown.classList.remove('open');
+                 const ddButton = brushTypeDropdown.querySelector('.dropdown-button');
+                 if(ddButton) ddButton.setAttribute('aria-expanded', 'false');
+            }
         }
 
-        // Event Listeners
-        canvas.addEventListener('mousedown', (e) => {
-            state.lastX = e.clientX; // Menggunakan clientX dan clientY langsung
-            state.lastY = e.clientY;
-            state.isDrawing = true;
-            saveHistory();
-        });
 
-        canvas.addEventListener('mouseup', () => state.isDrawing = false);
-        canvas.addEventListener('mouseout', () => state.isDrawing = false);
-        canvas.addEventListener('mousemove', (e) => {
-            if (!state.isDrawing) return;
-            draw(e.clientX, e.clientY); // Menggunakan clientX dan clientY langsung
-        });
+        // === Setup Event Listeners ===
+        function setupEventListeners() {
+            console.log("setupEventListeners: Attaching listeners...");
 
-        // Touch event listeners
-        canvas.addEventListener('touchstart', handleStart, false);
-        canvas.addEventListener('touchmove', handleMove, false);
-        canvas.addEventListener('touchend', handleEnd, false);
-        canvas.addEventListener('touchcancel', handleEnd, false);
+            if (optionsButton) {
+                optionsButton.addEventListener('click', toggleOptionsPanel);
+            } else { console.error("Options button not found for listener."); }
 
-        // Toolbar Functionality
-        document.getElementById('colorPicker').addEventListener('change', (e) => state.color = e.target.value);
-        document.getElementById('penSize').addEventListener('change', (e) => state.penSize = e.target.value);
-        document.getElementById('eraserSize').addEventListener('change', (e) => state.eraserSize = e.target.value);
+            if (canvas) {
+                canvas.addEventListener('mousedown', handleStart);
+                canvas.addEventListener('mousemove', handleMove);
+                canvas.addEventListener('mouseup', handleEnd);
+                canvas.addEventListener('mouseout', handleEnd); // Stop drawing if mouse leaves
+                canvas.addEventListener('touchstart', handleStart, { passive: false });
+                canvas.addEventListener('touchmove', handleMove, { passive: false });
+                canvas.addEventListener('touchend', handleEnd);
+                canvas.addEventListener('touchcancel', handleEnd);
+                 console.log("setupEventListeners: Canvas listeners attached.");
+             } else { console.error("Canvas not found for listeners."); }
 
-        // Set Brush Type Function
-        function setBrushType(type) {
-            state.brushType = type;
+            // --- Panel Controls ---
+             if (colorPicker) {
+                 colorPicker.addEventListener('input', (e) => { state.color = e.target.value; console.log("Color picker changed:", state.color); });
+             } else { console.warn("Color Picker not found."); }
+
+            if (penSizeSlider && penSizeValueSpan) {
+                penSizeSlider.addEventListener('input', (e) => { state.penSize = e.target.value; penSizeValueSpan.textContent = state.penSize; /* console.log("Pen size:", state.penSize); */ });
+            } else { console.warn("Pen size slider/span not found."); }
+
+            if (eraserSizeSlider && eraserSizeValueSpan) {
+                 eraserSizeSlider.addEventListener('input', (e) => { state.eraserSize = e.target.value; eraserSizeValueSpan.textContent = state.eraserSize; /* console.log("Eraser size:", state.eraserSize); */ });
+             } else { console.warn("Eraser size slider/span not found."); }
+
+            // Tool Buttons
+            if(brushButton) brushButton.addEventListener('click', () => handleToolChange('brush')); else console.warn("Brush button not found.");
+            if(eraserButton) eraserButton.addEventListener('click', () => handleToolChange('eraser')); else console.warn("Eraser button not found.");
+            if(fillButton) fillButton.addEventListener('click', () => handleToolChange('fill')); else console.warn("Fill button not found.");
+
+            // Brush Type Dropdown & Buttons
+             if (brushTypeDropdown) {
+                 const ddButton = brushTypeDropdown.querySelector('.dropdown-button');
+                 if (ddButton) {
+                     ddButton.addEventListener('click', (e) => {
+                         const isOpen = brushTypeDropdown.classList.toggle('open');
+                         e.currentTarget.setAttribute('aria-expanded', isOpen);
+                         console.log("Brush dropdown toggled:", isOpen);
+                     });
+                 } else { console.warn("Brush dropdown button not found."); }
+
+                 console.log(`setupEventListeners: Found ${brushTypeButtons.length} brush type buttons.`);
+                 brushTypeButtons.forEach((button, index) => {
+                     if(button && button.dataset.brush) {
+                         button.addEventListener('click', () => handleBrushTypeChange(button.dataset.brush));
+                     } else {
+                         console.warn(`Brush type button ${index} or its data-brush attribute is invalid.`);
+                     }
+                 });
+             } else { console.warn("Brush dropdown container not found."); }
+
+             // Action Buttons
+             if(undoButton) undoButton.addEventListener('click', undo); else console.warn("Undo button not found.");
+             if(redoButton) redoButton.addEventListener('click', redo); else console.warn("Redo button not found.");
+             if(clearButton) clearButton.addEventListener('click', () => { console.log("Clear button clicked."); if(ctx){ const cw = canvas.width/state.dpr, ch = canvas.height/state.dpr; ctx.clearRect(0,0,cw,ch);} saveHistory(); if(state.gridEnabled) drawGrid(); }); else console.warn("Clear button not found.");
+             if(gridButton) gridButton.addEventListener('click', () => { console.log("Grid button clicked."); state.gridEnabled = !state.gridEnabled; redrawHistory(); updateToolUI(); }); else console.warn("Grid button not found.");
+
+             // File Buttons
+             if(saveButton) saveButton.addEventListener('click', () => { console.log("Save button clicked."); try { const tempC=document.createElement('canvas'); tempC.width=canvas.width; tempC.height=canvas.height; const tempCtx=tempC.getContext('2d'); const img=new Image(); img.onload=()=>{ tempCtx.drawImage(img,0,0); const dataURL=tempC.toDataURL('image/png'); const link=document.createElement('a'); link.href=dataURL; link.download='keyzia-drawing-modern.png'; link.click(); console.log("Image save initiated.");}; img.onerror=()=>{ throw new Error("History load failed"); }; if(!state.history[state.historyStep]) { throw new Error("No history state to save.");} img.src=state.history[state.historyStep]; } catch(e){ console.error("Save error:",e); alert("Gagal menyimpan gambar.");}}); else console.warn("Save button not found.");
+             if(uploadButton && imageUploadInput) uploadButton.addEventListener('click', () => { console.log("Upload button clicked."); imageUploadInput.click(); }); else console.warn("Upload button or input not found.");
+             if(imageUploadInput) imageUploadInput.addEventListener('change', (e) => { console.log("Image file selected."); const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=(ev)=>{ const img=new Image(); img.onload=()=>{ console.log("Uploaded image loaded."); const cw=canvas.width/state.dpr, ch=canvas.height/state.dpr; if(ctx){ctx.clearRect(0,0,cw,ch); ctx.drawImage(img,0,0,cw,ch);} saveHistory(); if(state.gridEnabled) drawGrid();}; img.onerror=()=>{alert("Gagal memuat gambar."); console.error("Uploaded image load error.");}; img.src=ev.target.result;}; reader.onerror=()=>{alert("Gagal membaca file."); console.error("File reader error.");}; reader.readAsDataURL(file); e.target.value=null; }); else console.warn("Image upload input not found.");
+             if(shareButton) shareButton.addEventListener('click', async () => { console.log("Share button clicked."); try { const tempC=document.createElement('canvas'); tempC.width=canvas.width; tempC.height=canvas.height; const tempCtx=tempC.getContext('2d'); const img=new Image(); img.onload=()=>{tempCtx.drawImage(img,0,0); tempC.toBlob(async(blob)=>{ if(!blob) throw new Error("Blob creation failed."); const file=new File([blob],'kz-draw.png',{type:'image/png'}); const shareData={title:'Keyzia Draw',text:'Gambar saya!',files:[file]}; if(navigator.share && navigator.canShare && navigator.canShare(shareData)){ await navigator.share(shareData); console.log('Shared via API.');} else { console.log('Share API not supported, fallback download.'); saveButton.click(); alert('Fitur bagikan tidak didukung, gambar akan diunduh.');}},'image/png');}; img.onerror=()=>{ throw new Error("History load failed for share.");}; if(!state.history[state.historyStep]) { throw new Error("No history state to share.");} img.src=state.history[state.historyStep]; } catch(e){ console.error('Share error:',e); alert(`Gagal berbagi: ${e.message}`); saveButton.click();}}); else console.warn("Share button not found.");
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                 // Ignore shortcuts if typing in an input potentially added later
+                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                 let handled = false;
+                 if (e.ctrlKey || e.metaKey) {
+                     switch (e.key.toLowerCase()) {
+                         case 'z': undo(); handled = true; break;
+                         case 'y': redo(); handled = true; break;
+                         case 's': saveButton?.click(); handled = true; break; // Check if button exists
+                     }
+                 } else {
+                     switch (e.key.toLowerCase()) {
+                         case 'b': handleToolChange('brush'); handled = true; break;
+                         case 'e': handleToolChange('eraser'); handled = true; break;
+                         case 'f': handleToolChange('fill'); handled = true; break;
+                         case 'g': gridButton?.click(); handled = true; break; // Check if button exists
+                     }
+                 }
+                 if (handled) {
+                     console.log("Keyboard shortcut handled:", e.key);
+                     e.preventDefault(); // Prevent default browser action (like save page)
+                 }
+             });
+
+            // Window Resize Listener (Debounced)
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(resizeCanvas, 150);
+            });
+
+            console.log("setupEventListeners: Listeners attached.");
         }
 
-        // Opsi Function
-        const optionsButton = document.getElementById('optionsButton');
-        const optionsPanel = document.getElementById('optionsPanel');
+        // === Start ===
+        // Use DOMContentLoaded which fires earlier than 'load' often
+        // window.addEventListener('load', initializeApp);
+        window.addEventListener('DOMContentLoaded', initializeApp);
 
-        optionsButton.addEventListener('click', () => {
-            optionsPanel.classList.toggle('open');
-        });
-
-                // Menambahkan event listeners untuk tombol perintah di dalam panel opsi
-        document.getElementById('eraserButton').addEventListener('click', () => state.isErasing = !state.isErasing);
-        document.getElementById('fillButton').addEventListener('click', (e) => {
-            fill(state.lastX, state.lastY);
-        });
-        document.getElementById('undoButton').addEventListener('click', undo);
-        document.getElementById('redoButton').addEventListener('click', redo);
-        document.getElementById('clearButton').addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            saveHistory();
-        });
-        document.getElementById('gridButton').addEventListener('click', () => {
-            state.gridEnabled = !state.gridEnabled;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            redrawHistory();
-            if (state.gridEnabled) drawGrid();
-        });
-
-        document.getElementById('saveButton').addEventListener('click', () => {
-            let dataURL = canvas.toDataURL('image/png');
-            let link = document.createElement('a');
-            link.href = dataURL;
-            link.download = 'drawing.png';
-            link.click();
-        });
-
-        document.getElementById('uploadButton').addEventListener('click', () => {
-            document.getElementById('imageUpload').click();
-        });
-
-        document.getElementById('imageUpload').addEventListener('change', (e) => {
-            let file = e.target.files[0];
-            let reader = new FileReader();
-
-            reader.onload = function (event) {
-                let img = new Image();
-                img.onload = function () {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    saveHistory();
-                }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(file);
-        });
-
-        document.getElementById('shareButton').addEventListener('click', () => {
-            const dataURL = canvas.toDataURL('image/png');
-
-            if (navigator.share) {
-                navigator.share({
-                        title: 'Lukisan Saya',
-                        text: 'Lihat lukisan saya!',
-                        url: dataURL,
-                    })
-                    .then(() => console.log('Berhasil dibagikan'))
-                    .catch((error) => console.error('Kesalahan saat berbagi:', error));
-            } else {
-                navigator.clipboard.writeText(dataURL)
-                    .then(() => {
-                        alert("Gambar berhasil disalin ke clipboard!");
-                    })
-                    .catch(err => {
-                        console.error('Gagal menyalin: ', err);
-                        alert("Gagal menyalin gambar ke clipboard.");
-                    });
-            }
-        });
-
-        // Initialization
-        window.addEventListener('load', () => {
-            resizeCanvas();
-            saveHistory();
-        });
-        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 
