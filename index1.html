@@ -9,6 +9,16 @@
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
+        :root {
+            --primary-color: #5cb85c;
+            --primary-hover-color: #4cae4c;
+            --active-tool-bg: #e0e0e0;
+            --dropdown-bg: rgba(255, 255, 255, 0.9);
+            --text-color: #333;
+            --border-color: #777;
+            --grid-color: #ccc;
+        }
+
         body {
             text-align: center;
             background: linear-gradient(135deg, #a8edea, #fed6e3);
@@ -18,12 +28,16 @@
             overflow-x: hidden;
             overflow-y: auto;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
-            color: #333;
+            color: var(--text-color);
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
             margin-top: 10px;
+            margin-bottom: 5px; /* Reduced margin */
+            font-size: 1.8em;
         }
 
         /* Gaya untuk dropdown */
@@ -32,10 +46,11 @@
             top: 10px;
             right: 10px;
             display: inline-block;
+            z-index: 100; /* Ensure dropdown is on top */
         }
 
         .options-button {
-            background-color: #5cb85c;
+            background-color: var(--primary-color);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -44,70 +59,152 @@
             font-size: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             transition: background-color 0.2s ease;
-            margin-bottom: 10px;
         }
 
         .options-button:hover {
-            background-color: #4cae4c;
+            background-color: var(--primary-hover-color);
         }
 
         .options-content {
             display: none;
             position: absolute;
-            background-color: rgba(255, 255, 255, 0.8);
-            min-width: 200px;
+            background-color: var(--dropdown-bg);
+            min-width: 220px; /* Slightly wider */
             box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             padding: 10px;
             z-index: 1;
             border-radius: 10px;
             right: 0;
             text-align: left;
+            max-height: calc(100vh - 100px); /* Limit height */
+            overflow-y: auto; /* Add scroll if needed */
         }
 
         .options-dropdown:hover .options-content {
             display: block;
         }
 
-        /* Gaya untuk tombol di dalam dropdown */
+        /* Gaya untuk item di dalam dropdown */
+        .dropdown-item {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .dropdown-item label {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .dropdown-item label i {
+            margin-right: 5px;
+        }
+
         .dropdown-tool-button,
         .dropdown-color-picker,
         .dropdown-range-input {
-            display: block;
-            width: 100%;
+            display: block; /* Changed to block for consistency */
+            width: calc(100% - 16px); /* Adjust width to fit padding */
             padding: 8px;
             margin-bottom: 5px;
-            border: none;
+            border: 1px solid transparent; /* Add border for active state */
             background-color: transparent;
             text-align: left;
             cursor: pointer;
             border-radius: 5px;
             box-shadow: none;
             font-size: 15px;
-            color: #333;
+            color: var(--text-color);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
+
+        .dropdown-tool-button {
+             width: 100%; /* Full width for buttons */
+             box-sizing: border-box; /* Include padding in width */
+        }
+
 
         .dropdown-tool-button:hover {
             background-color: #ddd;
         }
 
+        .dropdown-tool-button.active-tool {
+            background-color: var(--active-tool-bg);
+            border: 1px solid #bbb;
+            font-weight: bold;
+        }
+
         .dropdown-color-picker {
-            height: 30px;
+            height: 35px; /* Slightly larger */
+            width: 100%; /* Full width */
+             box-sizing: border-box;
         }
 
         .dropdown-range-input {
-            width: 90%;
+            width: 100%; /* Full width */
+             box-sizing: border-box;
         }
 
+        .range-value {
+            font-size: 13px;
+            color: #555;
+            margin-left: 5px;
+        }
+
+        /* Color Palette */
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+            padding-bottom: 10px;
+        }
+
+        .palette-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            display: inline-block;
+            box-shadow: 0 0 3px rgba(0,0,0,0.1);
+            transition: transform 0.1s ease;
+        }
+        .palette-color:hover {
+            transform: scale(1.1);
+        }
+
+        /* Brush Types Grouping */
+        .brush-types {
+             border-top: 1px solid #eee;
+             padding-top: 10px;
+             margin-top: 10px;
+        }
+         .brush-types label {
+            margin-bottom: 8px;
+         }
+
+
         canvas {
-            width: 100vw;
-            height: calc(100vh - 80px);
-            border: 4px solid #777;
+            /* width: 100vw; Let flexbox handle width */
+            /* height: calc(100vh - 80px); Let flexbox handle height */
+            border: 4px solid var(--border-color);
             background: white;
             border-radius: 12px;
             cursor: crosshair;
             box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-            margin: 0 auto;
+            margin: 10px auto; /* Center horizontally with auto margins */
             display: block;
+            flex-grow: 1; /* Allow canvas to take available space */
+            max-width: 100%; /* Ensure canvas doesn't overflow */
+            box-sizing: border-box; /* Include border in size */
         }
 
         /* Hide the upload button */
@@ -115,11 +212,35 @@
             display: none;
         }
 
-        /* Gaya untuk media queries */
-        @media screen and (orientation: landscape) {
-            canvas {
-                height: calc(100vh - 80px);
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5em;
             }
+            .options-button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            .options-content {
+                min-width: 180px;
+            }
+             .dropdown-tool-button, .dropdown-range-input {
+                 font-size: 14px;
+             }
+        }
+
+        @media screen and (orientation: landscape) and (max-height: 500px) {
+             h1 {
+                 margin-top: 5px;
+                 font-size: 1.3em;
+             }
+             .options-dropdown {
+                 top: 5px;
+                 right: 5px;
+             }
+             .options-content {
+                max-height: calc(100vh - 60px);
+             }
         }
     </style>
 </head>
@@ -130,51 +251,60 @@
     <div class="options-dropdown">
         <button class="options-button"><i class="fas fa-cog"></i> Opsi</button>
         <div class="options-content">
-            <label for="colorPicker"><i class="fas fa-palette"></i> Warna:</label>
-            <input type="color" id="colorPicker" class="dropdown-color-picker" value="#000000" title="Pilih Warna">
+            <!-- Color Section -->
+            <div class="dropdown-item">
+                <label for="colorPicker"><i class="fas fa-palette"></i> Warna:</label>
+                <input type="color" id="colorPicker" class="dropdown-color-picker" value="#000000" title="Pilih Warna">
+                <div class="color-palette" id="colorPalette">
+                    <!-- Palette colors will be added by JS -->
+                </div>
+            </div>
 
-            <label for="penSize"><i class="fas fa-paint-brush"></i> Ukuran Kuas:</label>
-            <input type="range" id="penSize" class="dropdown-range-input" min="1" max="25" value="5"
-                title="Ukuran Kuas">
+            <!-- Size Section -->
+            <div class="dropdown-item">
+                <label for="penSize"><i class="fas fa-paint-brush"></i> Ukuran Kuas: <span id="penSizeValue" class="range-value">5</span></label>
+                <input type="range" id="penSize" class="dropdown-range-input" min="1" max="50" value="5" title="Ukuran Kuas">
+            </div>
+            <div class="dropdown-item">
+                <label for="eraserSize"><i class="fas fa-eraser"></i> Ukuran Penghapus: <span id="eraserSizeValue" class="range-value">10</span></label>
+                <input type="range" id="eraserSize" class="dropdown-range-input" min="1" max="100" value="10" title="Ukuran Penghapus">
+            </div>
 
-            <label for="eraserSize"><i class="fas fa-eraser"></i> Ukuran Penghapus:</label>
-            <input type="range" id="eraserSize" class="dropdown-range-input" min="1" max="50" value="10"
-                title="Ukuran Penghapus">
+             <!-- Tools Section -->
+             <div class="dropdown-item">
+                 <label><i class="fas fa-tools"></i> Alat:</label>
+                 <button class="dropdown-tool-button" id="brushButton" title="Kuas Normal"><i class="fas fa-pencil-alt"></i> Kuas</button>
+                 <button class="dropdown-tool-button" id="eraserButton" title="Penghapus"><i class="fas fa-eraser"></i> Penghapus</button>
+                 <button class="dropdown-tool-button" id="fillButton" title="Isi Warna (Ember Cat)"><i class="fas fa-fill-drip"></i> Isi Warna</button>
+             </div>
 
-            <button class="dropdown-tool-button" onclick="setBrushType('circle')"><i class="fas fa-circle"></i> Kuas
-                Lingkaran</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('square')"><i class="fas fa-square"></i> Kuas
-                Kotak</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('spray')"><i class="fas fa-spray-can"></i>
-                Kuas Semprot</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('heart')"><i class="fas fa-heart"></i> Kuas
-                Hati</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('star')"><i class="fas fa-star"></i> Kuas
-                Bintang</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('flower')"><i class="fas fa-fan"></i> Kuas
-                Bunga</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('leaf')"><i class="fas fa-leaf"></i> Kuas
-                Daun</button>
-            <button class="dropdown-tool-button" onclick="setBrushType('diamond')"><i class="fas fa-gem"></i> Kuas
-                Berlian</button>
 
-            <button class="dropdown-tool-button" id="eraserButton" title="Penghapus"><i
-                    class="fas fa-eraser"></i>  Penghapus</button>
-            <button class="dropdown-tool-button" id="undoButton" title="Undo"><i
-                    class="fas fa-undo"></i>  Undo</button>
-            <button class="dropdown-tool-button" id="redoButton" title="Redo"><i
-                    class="fas fa-redo"></i>  Redo</button>
-            <button class="dropdown-tool-button" id="clearButton" title="Bersihkan"><i
-                    class="fas fa-trash"></i>  Bersihkan</button>
-            <button class="dropdown-tool-button" id="gridButton" title="Tampilkan Grid"><i
-                    class="fas fa-border-all"></i>  Grid</button>
-            <button class="dropdown-tool-button" id="saveButton" title="Simpan"><i
-                    class="fas fa-save"></i>  Simpan</button>
-            <button class="dropdown-tool-button" id="uploadButton" title="Unggah Gambar"><i
-                    class="fas fa-upload"></i>  Unggah</button>
-            <input type="file" id="imageUpload" accept="image/*">
-            <button class="dropdown-tool-button" id="shareButton" title="Bagikan"><i
-                    class="fas fa-share-alt"></i>  Bagikan</button>
+            <!-- Brush Types Section -->
+            <div class="dropdown-item brush-types">
+                <label><i class="fas fa-shapes"></i> Jenis Kuas:</label>
+                <button class="dropdown-tool-button" onclick="setBrushType('basic')" data-brush="basic"><i class="fas fa-pencil-alt"></i> Dasar</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('circle')" data-brush="circle"><i class="fas fa-circle"></i> Lingkaran</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('square')" data-brush="square"><i class="fas fa-square"></i> Kotak</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('spray')" data-brush="spray"><i class="fas fa-spray-can"></i> Semprot</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('heart')" data-brush="heart"><i class="fas fa-heart"></i> Hati</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('star')" data-brush="star"><i class="fas fa-star"></i> Bintang</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('flower')" data-brush="flower"><i class="fas fa-fan"></i> Bunga</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('leaf')" data-brush="leaf"><i class="fas fa-leaf"></i> Daun</button>
+                <button class="dropdown-tool-button" onclick="setBrushType('diamond')" data-brush="diamond"><i class="fas fa-gem"></i> Berlian</button>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="dropdown-item">
+                 <label><i class="fas fa-cogs"></i> Tindakan:</label>
+                <button class="dropdown-tool-button" id="undoButton" title="Undo"><i class="fas fa-undo"></i> Undo</button>
+                <button class="dropdown-tool-button" id="redoButton" title="Redo"><i class="fas fa-redo"></i> Redo</button>
+                <button class="dropdown-tool-button" id="clearButton" title="Bersihkan"><i class="fas fa-trash"></i> Bersihkan</button>
+                <button class="dropdown-tool-button" id="gridButton" title="Tampilkan/Sembunyikan Grid"><i class="fas fa-border-all"></i> Grid</button>
+                <button class="dropdown-tool-button" id="saveButton" title="Simpan"><i class="fas fa-save"></i> Simpan</button>
+                <button class="dropdown-tool-button" id="uploadButton" title="Unggah Gambar"><i class="fas fa-upload"></i> Unggah</button>
+                <input type="file" id="imageUpload" accept="image/*">
+                <button class="dropdown-tool-button" id="shareButton" title="Bagikan"><i class="fas fa-share-alt"></i> Bagikan</button>
+            </div>
         </div>
     </div>
 
@@ -182,10 +312,15 @@
 
     <script>
         const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true }); // willReadFrequently for fill tool performance
 
+        // Tool state variables
         let isDrawing = false;
         let isErasing = false;
+        let isFilling = false; // New state for fill tool
+        let currentTool = 'brush'; // Tracks the active tool: 'brush', 'eraser', 'fill'
+
+        // Drawing properties
         let lastX = 0;
         let lastY = 0;
         let color = document.getElementById('colorPicker').value;
@@ -194,182 +329,218 @@
         let brushType = 'basic';
         let gridEnabled = false;
 
+        // History variables
         let history = [];
         let historyStep = -1;
+        const MAX_HISTORY = 30; // Limit history size
 
-        // Mendapatkan offset canvas
-        function getCanvasOffset() {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                left: rect.left,
-                top: rect.top
-            };
+        // DOM Elements
+        const colorPicker = document.getElementById('colorPicker');
+        const penSizeSlider = document.getElementById('penSize');
+        const eraserSizeSlider = document.getElementById('eraserSize');
+        const penSizeValueSpan = document.getElementById('penSizeValue');
+        const eraserSizeValueSpan = document.getElementById('eraserSizeValue');
+        const brushButton = document.getElementById('brushButton');
+        const eraserButton = document.getElementById('eraserButton');
+        const fillButton = document.getElementById('fillButton');
+        const undoButton = document.getElementById('undoButton');
+        const redoButton = document.getElementById('redoButton');
+        const clearButton = document.getElementById('clearButton');
+        const gridButton = document.getElementById('gridButton');
+        const saveButton = document.getElementById('saveButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const imageUploadInput = document.getElementById('imageUpload');
+        const shareButton = document.getElementById('shareButton');
+        const colorPaletteContainer = document.getElementById('colorPalette');
+
+        // --- Initialization ---
+
+        function initializeApp() {
+            resizeCanvas();
+            createColorPalette();
+            setupEventListeners();
+            updateToolUI();
+            saveHistory(); // Save initial blank state
+            console.log("Keyzia Draw Initialized");
         }
 
-        // Mengonversi koordinat sentuh ke koordinat canvas
-        function getTouchPos(canvas, touchEvent) {
-            const canvasOffset = getCanvasOffset();
-            let x = touchEvent.touches[0].clientX - canvasOffset.left;
-            let y = touchEvent.touches[0].clientY - canvasOffset.top;
-
-            // Memperhitungkan DPI scaling
-            x *= canvas.width / canvas.offsetWidth;
-            y *= canvas.height / canvas.offsetHeight;
-
-            return {
-                x: x,
-                y: y
-            };
+        // Create quick access color palette
+        function createColorPalette() {
+            const defaultColors = [
+                '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
+                '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000', '#8B4513'
+            ];
+            defaultColors.forEach(c => {
+                const colorDiv = document.createElement('div');
+                colorDiv.classList.add('palette-color');
+                colorDiv.style.backgroundColor = c;
+                colorDiv.title = `Pilih ${c}`;
+                colorDiv.addEventListener('click', () => {
+                    colorPicker.value = c;
+                    color = c; // Update global color variable
+                    // Optionally: Trigger change event if needed by other parts
+                    // colorPicker.dispatchEvent(new Event('change'));
+                });
+                colorPaletteContainer.appendChild(colorDiv);
+            });
         }
 
-        // Mengonversi koordinat mouse ke koordinat canvas
-        function getMousePos(canvas, mouseEvent) {
-            const canvasOffset = getCanvasOffset();
-            let x = mouseEvent.clientX - canvasOffset.left;
-            let y = mouseEvent.clientY - canvasOffset.top;
+        // --- Canvas Setup and Drawing ---
 
-            // Memperhitungkan DPI scaling
-            x *= canvas.width / canvas.offsetWidth;
-            y *= canvas.height / canvas.offsetHeight;
-
-            return {
-                x: x,
-                y: y
-            };
-        }
-
-        // Initialize Canvas Size
+        // Resize canvas and redraw content
         function resizeCanvas() {
-            canvas.width = canvas.offsetWidth; // Gunakan lebar tampilan canvas
-            canvas.height = canvas.offsetHeight; // Gunakan tinggi tampilan canvas
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+
+            // Set display size
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+
+            // Set internal resolution size (scaled by DPR for sharpness)
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+
+            // Scale the context
+            ctx.scale(dpr, dpr);
+
+            // Redraw content after resizing
             redrawHistory();
             if (gridEnabled) drawGrid();
         }
 
-        // Drawing history
-        function saveHistory() {
-            historyStep++;
-            if (historyStep < history.length) {
-                history.length = historyStep;
+        // Get adjusted mouse/touch position relative to canvas element
+        function getPos(canvasEl, event) {
+            const rect = canvasEl.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            let clientX, clientY;
+
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
             }
-            history.push(canvas.toDataURL());
+
+            // Calculate position relative to the element, then adjust for DPR scaling
+            const x = (clientX - rect.left);
+            const y = (clientY - rect.top);
+
+            return { x: x, y: y }; // Return coordinates in CSS pixels
         }
 
-        function undo() {
-            if (historyStep > 0) {
-                historyStep--;
-                redrawHistory();
-            }
-        }
 
-        function redo() {
-            if (historyStep < history.length - 1) {
-                historyStep++;
-                redrawHistory();
-            }
-        }
-
-        function redrawHistory() {
-            if (history.length === 0) return; // Prevent error if history is empty
-
-            let img = new Image();
-            img.src = history[historyStep];
-            img.onload = function () {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
-        }
-
-        // Grid
-        function drawGrid() {
-            ctx.strokeStyle = '#ccc';
-            ctx.lineWidth = 0.5;
-            let gridSize = 50;
-            for (let i = gridSize; i < canvas.width; i += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
-            }
-            for (let i = gridSize; i < canvas.height; i += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(canvas.width, i);
-                ctx.stroke();
-            }
-        }
-
-        // Drawing functions
+        // Core drawing function
         function draw(x, y) {
+             if (!isDrawing) return;
+
+            // Get canvas coordinates scaled by DPR
+             const dpr = window.devicePixelRatio || 1;
+             const canvasX = x * dpr;
+             const canvasY = y * dpr;
+             const lastCanvasX = lastX * dpr;
+             const lastCanvasY = lastY * dpr;
+
+
             ctx.beginPath();
-            ctx.lineWidth = penSize;
             ctx.lineCap = 'round';
-            ctx.strokeStyle = color;
+            ctx.lineJoin = 'round'; // Smoother lines
+
 
             if (isErasing) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.lineWidth = eraserSize;
-                ctx.strokeStyle = "rgba(0,0,0,1)";
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
+                ctx.globalCompositeOperation = 'destination-out'; // Erase mode
+                ctx.lineWidth = eraserSize * dpr; // Scale size by DPR
+                // Draw line for erasing
+                ctx.moveTo(lastCanvasX, lastCanvasY);
+                ctx.lineTo(canvasX, canvasY);
                 ctx.stroke();
             } else {
-                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalCompositeOperation = 'source-over'; // Normal drawing mode
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color; // Needed for filled shapes
+                ctx.lineWidth = penSize * dpr; // Scale size by DPR
+                const currentPenSize = penSize * dpr; // Use scaled size for shapes
+
                 switch (brushType) {
                     case 'circle':
-                        ctx.arc(x, y, penSize / 2, 0, 2 * Math.PI);
-                        ctx.fillStyle = color;
-                        ctx.fill();
+                        // Draw filled circle instead of just arc outline
+                         ctx.beginPath(); // Start a new path for the circle
+                         ctx.arc(canvasX, canvasY, currentPenSize / 2, 0, 2 * Math.PI);
+                         ctx.fill();
+                         // No lineTo needed from last point for single shapes
                         break;
                     case 'square':
-                        ctx.fillRect(x - penSize / 2, y - penSize / 2, penSize, penSize);
-                        ctx.fillStyle = color;
+                        // Center the square correctly
+                        ctx.fillRect(canvasX - currentPenSize / 2, canvasY - currentPenSize / 2, currentPenSize, currentPenSize);
+                        // No lineTo needed
                         break;
                     case 'spray':
-                        for (let i = 0; i < 20; i++) {
+                        // Draw multiple small dots around the point
+                        const density = 30; // Adjust density as needed
+                        for (let i = 0; i < density; i++) {
                             let angle = Math.random() * Math.PI * 2;
-                            let radius = Math.random() * penSize;
-                            let sprayX = x + Math.cos(angle) * radius;
-                            let sprayY = y + Math.sin(angle) * radius;
-                            ctx.fillRect(sprayX, sprayY, 1, 1);
-                            ctx.fillStyle = color;
+                            let radius = Math.random() * currentPenSize / 1.5; // Adjust spread
+                            let sprayX = canvasX + Math.cos(angle) * radius;
+                            let sprayY = canvasY + Math.sin(angle) * radius;
+                            // Use fillRect for single pixels or small squares
+                             ctx.fillRect(sprayX, sprayY, dpr, dpr); // Draw 1x1 device pixel dots
                         }
+                        // No lineTo needed
                         break;
+                     // Custom shape brushes: These draw discrete shapes at the current point
+                     // They don't connect like a continuous line unless drawn very close together
                     case 'heart':
-                        drawHeart(x, y, penSize);
+                        drawHeart(canvasX, canvasY, currentPenSize);
                         break;
                     case 'star':
-                        drawStar(x, y, penSize);
+                        drawStar(canvasX, canvasY, currentPenSize);
                         break;
                     case 'flower':
-                        drawFlower(x, y, penSize);
+                        drawFlower(canvasX, canvasY, currentPenSize);
                         break;
                     case 'leaf':
-                        drawLeaf(x, y, penSize);
+                        drawLeaf(canvasX, canvasY, currentPenSize);
                         break;
                     case 'diamond':
-                        drawDiamond(x, y, penSize);
+                        drawDiamond(canvasX, canvasY, currentPenSize);
                         break;
+                    case 'basic': // Default line drawing
                     default:
-                        ctx.moveTo(lastX, lastY);
-                        ctx.lineTo(x, y);
+                        ctx.moveTo(lastCanvasX, lastCanvasY);
+                        ctx.lineTo(canvasX, canvasY);
                         ctx.stroke();
                         break;
                 }
             }
+
+             // Update last position in CSS pixels for the next move event
             lastX = x;
             lastY = y;
         }
 
-        function drawHeart(x, y, size) {
+
+        // --- Shape Drawing Helpers (operate on scaled coordinates) ---
+         function drawHeart(x, y, size) {
             ctx.save();
-            ctx.fillStyle = color;
+            ctx.fillStyle = color; // Ensure fillStyle is set
             ctx.beginPath();
-            ctx.moveTo(x, y - size / 4);
-            ctx.bezierCurveTo(x, y - size / 2, x + size / 2, y - size / 2, x + size / 2, y);
-            ctx.bezierCurveTo(x + size / 2, y + size / 4, x, y + size / 2, x, y + size / 4);
-            ctx.bezierCurveTo(x, y + size / 2, x - size / 2, y + size / 4, x - size / 2, y);
-            ctx.bezierCurveTo(x - size / 2, y - size / 2, x, y - size / 2, x, y - size / 4);
+            // Adjusted Bezier curve points for a common heart shape
+            const topY = y - size * 0.3;
+            const bottomY = y + size * 0.7;
+            const width = size * 1.1; // Make slightly wider
+            const controlX1 = x + width * 0.5;
+            const controlY1 = y - size * 0.6;
+            const controlX2 = x - width * 0.5;
+            const controlY2 = y - size * 0.6;
+
+            ctx.moveTo(x, topY);
+            // Right lobe
+            ctx.bezierCurveTo(x, controlY1, controlX1, controlY1, controlX1, y);
+            ctx.bezierCurveTo(controlX1, y + size * 0.4, x, bottomY, x, bottomY);
+            // Left lobe
+             ctx.bezierCurveTo(x, bottomY, controlX2, y + size * 0.4, controlX2, y);
+             ctx.bezierCurveTo(controlX2, controlY2, x, controlY2, x, topY);
+
             ctx.closePath();
             ctx.fill();
             ctx.restore();
@@ -377,196 +548,563 @@
 
         function drawStar(x, y, size) {
             ctx.save();
-            ctx.translate(x, y);
+            ctx.fillStyle = color; // Ensure fillStyle is set
             ctx.beginPath();
-            ctx.moveTo(0, -size / 2);
+            ctx.translate(x, y); // Translate origin to the star center
+            ctx.moveTo(0, -size / 2); // Start at the top point
+
             for (let i = 0; i < 5; i++) {
-                ctx.rotate(Math.PI / 5);
-                ctx.lineTo(0, -size / 2);
-                ctx.translate(0, -size / 2);
-                ctx.rotate(Math.PI / 10);
-                ctx.lineTo(0, size / 2);
-                ctx.translate(0, size / 2);
-                ctx.rotate(Math.PI / 5);
+                ctx.rotate(Math.PI / 5); // Rotate to inner point
+                ctx.lineTo(0, -(size / 4)); // Line to inner point (adjust radius)
+                ctx.rotate(Math.PI / 5); // Rotate to outer point
+                ctx.lineTo(0, -size / 2); // Line to outer point
             }
+
             ctx.closePath();
-            ctx.fillStyle = color;
             ctx.fill();
-            ctx.restore();
+            ctx.restore(); // Restore original transform state
         }
 
-        function drawFlower(x, y, size) {
+         function drawFlower(x, y, size) {
             ctx.save();
-            ctx.translate(x, y);
+            ctx.fillStyle = color; // Ensure fillStyle is set
             ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                ctx.rotate(Math.PI / 3);
-                ctx.arc(0, size / 4, size / 4, 0, Math.PI * 2 / 3);
+            ctx.translate(x, y);
+            const numPetals = 6;
+            const petalRadius = size / 3; // Radius of each petal circle
+            const angleIncrement = (Math.PI * 2) / numPetals;
+
+            for (let i = 0; i < numPetals; i++) {
+                const petalX = Math.cos(angleIncrement * i) * petalRadius * 0.8; // Position petals slightly closer
+                const petalY = Math.sin(angleIncrement * i) * petalRadius * 0.8;
+                ctx.moveTo(petalX + petalRadius, petalY); // Move to edge of petal circle
+                ctx.arc(petalX, petalY, petalRadius, 0, Math.PI * 2); // Draw petal circle
             }
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
+
+            // Optional: Draw center circle
+            // ctx.moveTo(size / 6, 0);
+            // ctx.arc(0, 0, size / 6, 0, Math.PI * 2);
+
+            ctx.closePath(); // Close path before filling if needed (often better without for overlapping shapes)
+            ctx.fill(); // Fill all petals
             ctx.restore();
         }
 
-        function drawLeaf(x, y, size) {
+
+         function drawLeaf(x, y, size) {
             ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(Math.PI / 4);
-            ctx.scale(1, 0.5);
+            ctx.fillStyle = color; // Ensure fillStyle is set
             ctx.beginPath();
-            ctx.ellipse(0, 0, size / 2, size / 4, 0, 0, Math.PI * 2);
+            ctx.translate(x, y);
+             ctx.rotate(Math.PI / 4); // Rotate for orientation
+
+            // Use ellipse for a basic leaf shape
+            const leafWidth = size * 0.8;
+            const leafHeight = size * 0.4;
+            ctx.ellipse(0, 0, leafWidth / 2, leafHeight / 2, 0, 0, Math.PI * 2);
+
             ctx.closePath();
-            ctx.fillStyle = color;
             ctx.fill();
             ctx.restore();
         }
 
-        function drawDiamond(x, y, size) {
+         function drawDiamond(x, y, size) {
             ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(Math.PI / 4);
+            ctx.fillStyle = color; // Ensure fillStyle is set
             ctx.beginPath();
-            ctx.moveTo(0, -size / 2);
-            ctx.lineTo(size / 2, 0);
-            ctx.lineTo(0, size / 2);
-            ctx.lineTo(-size / 2, 0);
-            ctx.closePath();
-            ctx.fillStyle = color;
+            ctx.translate(x, y);
+
+            // Define diamond points relative to center (0,0)
+            ctx.moveTo(0, -size / 2); // Top point
+            ctx.lineTo(size / 2.5, 0); // Right point (adjust width)
+            ctx.lineTo(0, size / 2); // Bottom point
+            ctx.lineTo(-size / 2.5, 0); // Left point (adjust width)
+
+            ctx.closePath(); // Connect back to top point
             ctx.fill();
             ctx.restore();
         }
 
-        // Touch event handlers
+        // --- Fill Tool (Bucket Fill) ---
+
+        function floodFill(startX, startY) {
+            console.log(`Fill starting at ${startX}, ${startY}`);
+            const dpr = window.devicePixelRatio || 1;
+            const canvasX = Math.floor(startX * dpr);
+            const canvasY = Math.floor(startY * dpr);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const targetColor = getPixelColor(data, canvas.width, canvasX, canvasY);
+            const fillColor = hexToRgb(color);
+
+            // If target color is same as fill color, do nothing
+            if (colorsMatch(targetColor, fillColor)) {
+                console.log("Target color is the same as fill color.");
+                return false; // Indicate no fill occurred
+            }
+            // If fill color includes transparency, handle appropriately (simple fill won't blend)
+             if (fillColor.a < 255) {
+                 console.warn("Fill tool does not support transparent colors perfectly. Filling with solid color.");
+                 // Optionally use fillStyle and fillRect with globalAlpha if blending is desired, but that's complex
+             }
+
+            const stack = [[canvasX, canvasY]]; // Use stack for iterative approach (avoids recursion depth limits)
+            const visited = new Set(); // Track visited pixels efficiently
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const pixelKey = `${x},${y}`;
+
+                // 1. Check bounds
+                if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+
+                // 2. Check if visited
+                if (visited.has(pixelKey)) continue;
+
+                // 3. Check if color matches target
+                const currentColor = getPixelColor(data, canvas.width, x, y);
+                if (!colorsMatch(currentColor, targetColor)) continue;
+
+                // 4. Color the pixel and mark visited
+                setPixelColor(data, canvas.width, x, y, fillColor);
+                visited.add(pixelKey);
+
+                // 5. Add neighbors to stack
+                stack.push([x + 1, y]);
+                stack.push([x - 1, y]);
+                stack.push([x, y + 1]);
+                stack.push([x, y - 1]);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            console.log(`Fill complete. ${visited.size} pixels filled.`);
+            return true; // Indicate fill occurred
+        }
+
+        // Helper to get pixel color [r, g, b, a] from image data
+        function getPixelColor(data, width, x, y) {
+            const index = (y * width + x) * 4;
+            return [data[index], data[index + 1], data[index + 2], data[index + 3]];
+        }
+
+        // Helper to set pixel color in image data
+        function setPixelColor(data, width, x, y, colorRgb) {
+            const index = (y * width + x) * 4;
+            data[index] = colorRgb.r;
+            data[index + 1] = colorRgb.g;
+            data[index + 2] = colorRgb.b;
+            data[index + 3] = colorRgb.a !== undefined ? colorRgb.a : 255; // Default to opaque if alpha missing
+        }
+
+        // Helper to compare two colors [r, g, b, a]
+        function colorsMatch(color1, color2) {
+            // Simple check: Consider adding tolerance for anti-aliasing if needed
+            return color1[0] === color2.r &&
+                   color1[1] === color2.g &&
+                   color1[2] === color2.b &&
+                   color1[3] === (color2.a !== undefined ? color2.a : 255);
+        }
+
+        // Helper to convert hex color string to {r, g, b} object
+        function hexToRgb(hex) {
+            let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16),
+                a: 255 // Assume fully opaque for fill
+            } : null;
+        }
+
+
+        // --- History Management ---
+
+        function saveHistory() {
+             // Debounce or throttle saving if performance becomes an issue
+             // For now, save directly
+
+            // Clear redo history if we draw after undoing
+            if (historyStep < history.length - 1) {
+                history.length = historyStep + 1;
+            }
+
+            // Limit history size
+            if (history.length >= MAX_HISTORY) {
+                history.shift(); // Remove the oldest state
+            } else {
+                historyStep++;
+            }
+
+            // Store the current canvas state as a Data URL
+            // Use lower quality JPG for history to save memory, or stick with PNG
+            // history.push(canvas.toDataURL('image/jpeg', 0.8));
+            history[historyStep] = canvas.toDataURL('image/png');
+
+            updateUndoRedoButtons();
+            // console.log(`History saved. Step: ${historyStep}, Length: ${history.length}`);
+        }
+
+
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                redrawFromHistory(historyStep);
+                updateUndoRedoButtons();
+                console.log(`Undo to step ${historyStep}`);
+            }
+        }
+
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                redrawFromHistory(historyStep);
+                updateUndoRedoButtons();
+                 console.log(`Redo to step ${historyStep}`);
+            }
+        }
+
+         // Redraw canvas from a specific history step
+         function redrawFromHistory(step) {
+             if (step < 0 || step >= history.length) return;
+
+             let img = new Image();
+             img.onload = () => {
+                 ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear scaled canvas
+                 // Draw image without scaling here, as history image matches canvas internal resolution
+                 ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+                 if (gridEnabled) drawGrid(); // Redraw grid if needed
+                 console.log(`Redrawn from history step ${step}`);
+             };
+             img.onerror = () => {
+                 console.error(`Failed to load history image for step ${step}`);
+             };
+             img.src = history[step];
+         }
+
+
+        // Redraw the *current* history state (used mainly during resize)
+        function redrawHistory() {
+            redrawFromHistory(historyStep);
+        }
+
+         function updateUndoRedoButtons() {
+             undoButton.disabled = historyStep <= 0;
+             redoButton.disabled = historyStep >= history.length - 1;
+         }
+
+        // --- Grid ---
+
+        function drawGrid() {
+             const dpr = window.devicePixelRatio || 1;
+             const scaledWidth = canvas.width / dpr;
+             const scaledHeight = canvas.height / dpr;
+
+            ctx.save(); // Save current state (like strokeStyle, lineWidth)
+            ctx.strokeStyle = 'var(--grid-color)';
+            ctx.lineWidth = 0.5; // Keep grid lines thin regardless of DPR
+            let gridSize = 30; // Grid size in CSS pixels
+
+            // Draw vertical lines
+            for (let x = gridSize; x < scaledWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, scaledHeight);
+                ctx.stroke();
+            }
+            // Draw horizontal lines
+            for (let y = gridSize; y < scaledHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(scaledWidth, y);
+                ctx.stroke();
+            }
+            ctx.restore(); // Restore previous drawing state
+        }
+
+        // --- UI Updates ---
+
+        // Highlight the active tool button and set cursor
+        function updateToolUI() {
+             // Remove active class from all tool buttons first
+             brushButton.classList.remove('active-tool');
+             eraserButton.classList.remove('active-tool');
+             fillButton.classList.remove('active-tool');
+              // Remove active class from all brush type buttons
+             document.querySelectorAll('.brush-types .dropdown-tool-button').forEach(btn => btn.classList.remove('active-tool'));
+
+
+             // Add active class to the current tool
+             if (currentTool === 'brush') {
+                 brushButton.classList.add('active-tool');
+                 canvas.style.cursor = 'crosshair'; // Or a custom brush cursor
+                 // Highlight the specific brush type if it's not 'basic'
+                 const activeBrushButton = document.querySelector(`.brush-types .dropdown-tool-button[data-brush="${brushType}"]`);
+                 if (activeBrushButton) {
+                     activeBrushButton.classList.add('active-tool');
+                 }
+             } else if (currentTool === 'eraser') {
+                 eraserButton.classList.add('active-tool');
+                 canvas.style.cursor = 'cell'; // Or a custom eraser cursor
+             } else if (currentTool === 'fill') {
+                 fillButton.classList.add('active-tool');
+                 canvas.style.cursor = 'copy'; // Indicate fill action
+             }
+        }
+
+
+        // --- Event Handlers ---
+
         function handleStart(e) {
-            e.preventDefault();
-            const touchPos = getTouchPos(canvas, e);
-            lastX = touchPos.x;
-            lastY = touchPos.y;
-            isDrawing = true;
-            saveHistory();
+             e.preventDefault(); // Prevent default touch actions (scroll, zoom)
+             const { x, y } = getPos(canvas, e);
+
+             if (isFilling) {
+                 // Execute fill on click/tap start
+                 if (floodFill(x, y)) {
+                     saveHistory(); // Save state only if fill actually happened
+                 }
+                 // Keep fill tool active after single fill
+                 // isFilling = false; // Uncomment to switch back to brush after fill
+                 // currentTool = 'brush'; // Uncomment to switch back to brush after fill
+                 // updateToolUI(); // Uncomment to switch back to brush after fill
+             } else {
+                 // Start drawing or erasing
+                 isDrawing = true;
+                 lastX = x;
+                 lastY = y;
+                 // Start path or action immediately if needed (e.g., for single-click shapes)
+                 if (!isErasing && brushType !== 'basic') {
+                     draw(x, y); // Draw initial shape for non-line brushes
+                 }
+                 // Save history at the beginning of a stroke/erase action
+                 saveHistory();
+             }
         }
+
 
         function handleMove(e) {
             e.preventDefault();
-            if (!isDrawing) return;
+            if (!isDrawing || isFilling) return; // Only draw if mouse/finger is down and not in fill mode
 
-            const touchPos = getTouchPos(canvas, e);
-            const x = touchPos.x;
-            const y = touchPos.y;
+            const { x, y } = getPos(canvas, e);
             draw(x, y);
+            // Note: History is saved at the start of the stroke in handleStart
+            // Saving on every move event is too performance-intensive
         }
 
         function handleEnd(e) {
             e.preventDefault();
-            isDrawing = false;
+            if (isDrawing) {
+                isDrawing = false;
+                // Optional: Save history again at the end of the stroke if needed,
+                // but saving at the start is usually sufficient and better for performance.
+                 // ctx.beginPath(); // Reset the path to prevent phantom lines on next start
+            }
+            // Do not reset isFilling here, let the tool buttons handle it
         }
 
-        // Mouse event listeners
-        canvas.addEventListener('mousedown', (e) => {
-            const mousePos = getMousePos(canvas, e);
-            lastX = mousePos.x;
-            lastY = mousePos.y;
-            isDrawing = true;
-            saveHistory();
-        });
+        // --- Setup Event Listeners ---
+        function setupEventListeners() {
+            // Mouse events
+            canvas.addEventListener('mousedown', handleStart);
+            canvas.addEventListener('mousemove', handleMove);
+            canvas.addEventListener('mouseup', handleEnd);
+            canvas.addEventListener('mouseout', handleEnd); // Stop drawing if mouse leaves canvas
 
-        canvas.addEventListener('mouseup', () => isDrawing = false);
-        canvas.addEventListener('mouseout', () => isDrawing = false);
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            const mousePos = getMousePos(canvas, e);
-            draw(mousePos.x, mousePos.y);
-        });
+            // Touch events
+            canvas.addEventListener('touchstart', handleStart, { passive: false }); // Need passive:false for preventDefault
+            canvas.addEventListener('touchmove', handleMove, { passive: false });
+            canvas.addEventListener('touchend', handleEnd);
+            canvas.addEventListener('touchcancel', handleEnd);
 
-        // Touch event listeners
-        canvas.addEventListener('touchstart', handleStart, false);
-        canvas.addEventListener('touchmove', handleMove, false);
-        canvas.addEventListener('touchend', handleEnd, false);
-        canvas.addEventListener('touchcancel', handleEnd, false);
+            // Toolbar controls
+            colorPicker.addEventListener('change', (e) => { color = e.target.value; });
+            penSizeSlider.addEventListener('input', (e) => {
+                penSize = e.target.value;
+                penSizeValueSpan.textContent = penSize;
+            });
+            eraserSizeSlider.addEventListener('input', (e) => {
+                eraserSize = e.target.value;
+                eraserSizeValueSpan.textContent = eraserSize;
+            });
 
-        // Toolbar Functionality
-        document.getElementById('colorPicker').addEventListener('change', (e) => color = e.target.value);
-        document.getElementById('penSize').addEventListener('change', (e) => penSize = e.target.value);
-        document.getElementById('eraserSize').addEventListener('change', (e) => eraserSize = e.target.value);
+             // Tool selection buttons
+             brushButton.addEventListener('click', () => {
+                 isErasing = false;
+                 isFilling = false;
+                 currentTool = 'brush';
+                 updateToolUI();
+             });
+             eraserButton.addEventListener('click', () => {
+                 isErasing = true;
+                 isFilling = false;
+                 currentTool = 'eraser';
+                 updateToolUI();
+             });
+             fillButton.addEventListener('click', () => {
+                 isErasing = false;
+                 isFilling = true;
+                 currentTool = 'fill';
+                 updateToolUI();
+             });
 
-        document.getElementById('eraserButton').addEventListener('click', () => isErasing = !isErasing);
-        document.getElementById('undoButton').addEventListener('click', undo);
-        document.getElementById('redoButton').addEventListener('click', redo);
-        document.getElementById('clearButton').addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            saveHistory();
-        });
+            // Action buttons
+            undoButton.addEventListener('click', undo);
+            redoButton.addEventListener('click', redo);
+            clearButton.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear scaled canvas
+                saveHistory(); // Save the cleared state
+                if (gridEnabled) drawGrid(); // Redraw grid if it was active
+            });
+            gridButton.addEventListener('click', () => {
+                gridEnabled = !gridEnabled;
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear before redraw
+                redrawHistory(); // Redraw content first
+                if (gridEnabled) drawGrid(); // Then draw grid on top if enabled
+                 gridButton.classList.toggle('active-tool', gridEnabled); // Visual feedback for grid
+            });
+            saveButton.addEventListener('click', () => {
+                try {
+                     // Create a temporary canvas to draw without the grid if it's enabled
+                     const tempCanvas = document.createElement('canvas');
+                     tempCanvas.width = canvas.width;
+                     tempCanvas.height = canvas.height;
+                     const tempCtx = tempCanvas.getContext('2d');
 
-        // Grid functionality
-        document.getElementById('gridButton').addEventListener('click', () => {
-            gridEnabled = !gridEnabled;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-            redrawHistory(); // Redraw previous content
-            if (gridEnabled) drawGrid(); // Draw grid if enabled
-        });
+                     // Draw the current history state (which doesn't include the grid overlay)
+                     let img = new Image();
+                     img.onload = () => {
+                         tempCtx.drawImage(img, 0, 0);
+                         // Now export from the temporary canvas
+                         let dataURL = tempCanvas.toDataURL('image/png');
+                         let link = document.createElement('a');
+                         link.href = dataURL;
+                         link.download = 'keyzia-drawing.png'; // More specific name
+                         link.click();
+                         console.log("Image saved.");
+                     };
+                     img.onerror = () => console.error("Failed to load history image for saving.");
+                     img.src = history[historyStep]; // Use current history state
 
-        document.getElementById('saveButton').addEventListener('click', () => {
-            let dataURL = canvas.toDataURL('image/png');
-            let link = document.createElement('a');
-            link.href = dataURL;
-            link.download = 'drawing.png';
-            link.click();
-        });
-
-        document.getElementById('uploadButton').addEventListener('click', () => {
-            document.getElementById('imageUpload').click();
-        });
-
-        document.getElementById('imageUpload').addEventListener('change', (e) => {
-            let file = e.target.files[0];
-            let reader = new FileReader();
-
-            reader.onload = function (event) {
-                let img = new Image();
-                img.onload = function () {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    saveHistory();
+                } catch (error) {
+                    console.error("Error saving image:", error);
+                    alert("Gagal menyimpan gambar. Coba lagi.");
                 }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(file);
-        });
+            });
+            uploadButton.addEventListener('click', () => imageUploadInput.click());
+            imageUploadInput.addEventListener('change', (e) => {
+                let file = e.target.files[0];
+                if (!file) return;
+                let reader = new FileReader();
 
-        // Fungsi berbagi ke WhatsApp
-        document.getElementById('shareButton').addEventListener('click', () => {
-            const dataURL = canvas.toDataURL('image/png');
-            const message = encodeURIComponent('Lihat lukisan saya!');
-            const whatsappURL = `whatsapp://send?text=${message}&image=${dataURL}`;
+                reader.onload = function (event) {
+                    let img = new Image();
+                    img.onload = function () {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                         // Draw image scaled to fit canvas display size, maintaining aspect ratio (optional)
+                         // Or simply draw covering the canvas:
+                        ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+                        saveHistory(); // Save the uploaded image state
+                        if (gridEnabled) drawGrid(); // Redraw grid if needed
+                        console.log("Image uploaded.");
+                    }
+                     img.onerror = () => {
+                         console.error("Error loading uploaded image.");
+                         alert("Gagal memuat gambar. Pastikan formatnya didukung.");
+                     }
+                    img.src = event.target.result;
+                }
+                 reader.onerror = () => {
+                     console.error("Error reading file.");
+                     alert("Gagal membaca file gambar.");
+                 }
+                reader.readAsDataURL(file);
+                 e.target.value = null; // Reset input to allow uploading the same file again
+            });
 
-            // Check if WhatsApp is installed (not reliable on all devices)
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                window.location.href = whatsappURL;
-            } else {
-                // Provide fallback: copy image URL or display QR code
-                navigator.clipboard.writeText(dataURL)
-                    .then(() => {
-                        alert('URL gambar telah disalin ke clipboard. Bagikan secara manual.');
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy: ', err);
-                        alert('Tidak dapat menyalin URL. Coba bagikan secara manual.');
-                    });
-            }
-        });
+            shareButton.addEventListener('click', async () => {
+                try {
+                    // Get canvas content as Blob (preferred for Web Share API)
+                    canvas.toBlob(async (blob) => {
+                        if (!blob) {
+                            throw new Error("Canvas to Blob conversion failed.");
+                        }
+                        const fileName = 'keyzia-drawing.png';
+                        const file = new File([blob], fileName, { type: 'image/png' });
+                        const shareData = {
+                            title: 'Kreasi Keyzia Draw',
+                            text: 'Lihat gambar yang saya buat dengan Keyzia Draw!',
+                            files: [file],
+                        };
 
-        // Set Brush Type Function
-        function setBrushType(type) {
-            brushType = type;
+                        // Check if Web Share API is available and can share files
+                        if (navigator.canShare && navigator.canShare(shareData)) {
+                             await navigator.share(shareData);
+                             console.log('Image shared successfully via Web Share API.');
+                        } else {
+                             // Fallback: Try simpler share or download link
+                             console.log('Web Share API not supported for files, using fallback.');
+                             // Simple text share fallback (less ideal)
+                             // await navigator.share({ title: shareData.title, text: shareData.text });
+
+                            // Or provide download link as fallback
+                            let dataURL = canvas.toDataURL('image/png');
+                            let link = document.createElement('a');
+                            link.href = dataURL;
+                            link.download = fileName;
+                            link.click();
+                            alert('Fitur bagikan tidak didukung penuh. Gambar telah diunduh.');
+
+                             // Alternative fallback: Copy Data URL (very long)
+                             /*
+                             navigator.clipboard.writeText(canvas.toDataURL('image/png'))
+                                 .then(() => alert('URL gambar disalin ke clipboard. Bagikan secara manual.'))
+                                 .catch(err => {
+                                     console.error('Clipboard copy failed:', err);
+                                     alert('Tidak dapat menyalin URL. Coba simpan dan bagikan manual.');
+                                 });
+                             */
+                        }
+                    }, 'image/png');
+                } catch (error) {
+                    console.error('Error sharing:', error);
+                    alert(`Gagal berbagi gambar: ${error.message}`);
+                    // Provide download as the ultimate fallback if everything else fails
+                    saveButton.click();
+                }
+            });
+
+
+            // Window resize listener
+            // Use debouncing to avoid excessive resizing calls
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                     console.log("Window resized, adjusting canvas...");
+                     resizeCanvas();
+                }, 150); // Adjust delay as needed (e.g., 150-250ms)
+            });
         }
 
-        // Initialization
-        window.addEventListener('load', () => {
-            resizeCanvas();
-            saveHistory();
-        });
-        window.addEventListener('resize', resizeCanvas);
+        // --- Global Function for Brush Type Buttons ---
+        // Make sure function is accessible globally if called directly from HTML onclick
+        window.setBrushType = function(type) {
+            brushType = type;
+             // Ensure brush tool is active when changing brush type
+             isErasing = false;
+             isFilling = false;
+             currentTool = 'brush';
+             updateToolUI(); // Update highlights
+             console.log(`Brush type set to: ${type}`);
+        }
+
+        // --- Start the application ---
+        window.addEventListener('load', initializeApp);
+
     </script>
 </body>
 
