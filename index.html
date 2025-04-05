@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Keyzia Draw - Modern (Debug)</title> <!-- Added (Debug) to title -->
+    <!-- Crucial viewport settings for mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Keyzia Draw - Modern (Debug)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -19,12 +20,19 @@
             --grid-color: #ddd;
         }
 
-        body {
-            font-family: 'Arial', sans-serif;
+        html, body {
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Prevent body scroll */
+            height: 100%; /* Ensure html and body take full height */
+            overflow: hidden; /* Prevent body scroll absolutely */
             background-color: #f0f0f0;
+            overscroll-behavior: none; /* Prevent pull-to-refresh/overscroll effects */
+            position: fixed; /* Prevent any scroll */
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
         }
 
         h1 { display: none; } /* Hide H1 */
@@ -58,7 +66,7 @@
 
         #optionsPanel {
             position: fixed;
-            top: 50px;
+            top: 50px; /* Adjust if options button height changes */
             left: 10px;
             background: var(--toolbar-background);
             backdrop-filter: blur(5px);
@@ -68,7 +76,7 @@
             z-index: 1000;
             display: none; /* Hidden by default */
             width: 280px;
-            max-height: calc(100vh - 70px);
+            max-height: calc(100vh - 70px); /* Adjust based on top position and desired bottom margin */
             overflow-y: auto;
             border: 1px solid rgba(0,0,0,0.1);
         }
@@ -113,7 +121,18 @@
         .dropdown-content button.active-tool { background-color: #d8e9d8; border-color: #a7c4a7; } /* Specific active style */
 
 
-        canvas { display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; cursor: crosshair; z-index: 1; }
+        #drawingCanvas {
+             display: block;
+             position: fixed; /* Keep fixed positioning */
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: white;
+             cursor: crosshair;
+             z-index: 1;
+             touch-action: none; /* VERY IMPORTANT: Prevent default touch actions like scrolling/zooming on the canvas itself */
+        }
         #imageUpload { display: none; }
 
         /* Media queries */
@@ -239,11 +258,11 @@
         const state = {
             isDrawing: false,
             currentTool: 'brush',
-            lastX: 0,
-            lastY: 0,
+            lastX: 0, // Stores last position in CSS pixels
+            lastY: 0, // Stores last position in CSS pixels
             color: '#000000',
-            penSize: 5,
-            eraserSize: 10,
+            penSize: 5, // In CSS pixels
+            eraserSize: 10, // In CSS pixels
             brushType: 'basic',
             gridEnabled: false,
             history: [],
@@ -292,15 +311,17 @@
                  alert("Error: Canvas tidak dapat dimuat.");
                  return; // Stop initialization if canvas fails
              }
-             ctx = canvas.getContext('2d', { willReadFrequently: true });
+             // Get context, potentially enabling low latency on supported browsers
+             ctx = canvas.getContext('2d', {
+                 willReadFrequently: true, // Needed for flood fill
+                 // desynchronized: true // Potential performance boost, test carefully
+             });
              console.log("initializeApp: Canvas context obtained.");
 
 
             // Check if essential elements exist before proceeding
             if (!optionsButton || !optionsPanel || !colorPicker || !penSizeSlider || !eraserSizeSlider || !brushButton || !eraserButton || !fillButton || !undoButton || !redoButton || !gridButton || !clearButton || !saveButton || !uploadButton || !shareButton) {
                  console.error("initializeApp: One or more essential UI elements not found!");
-                 // You might want to display an error to the user here
-                 // return; // Optionally stop if critical elements are missing
              } else {
                  console.log("initializeApp: All essential UI elements found.");
              }
@@ -308,8 +329,8 @@
 
             // Initialize state from HTML values
             state.color = colorPicker ? colorPicker.value : '#000000';
-            state.penSize = penSizeSlider ? penSizeSlider.value : 5;
-            state.eraserSize = eraserSizeSlider ? eraserSizeSlider.value : 10;
+            state.penSize = penSizeSlider ? parseInt(penSizeSlider.value, 10) : 5; // Ensure number
+            state.eraserSize = eraserSizeSlider ? parseInt(eraserSizeSlider.value, 10) : 10; // Ensure number
             if (penSizeValueSpan) penSizeValueSpan.textContent = state.penSize;
             if (eraserSizeValueSpan) eraserSizeValueSpan.textContent = state.eraserSize;
             state.dpr = window.devicePixelRatio || 1; // Update DPR
@@ -328,6 +349,7 @@
         }
 
         function createColorPalette() {
+            // ... (no changes needed here)
             console.log("createColorPalette: Running");
             if (!colorPaletteContainer) {
                  console.warn("Color Palette Container not found."); return;
@@ -353,85 +375,162 @@
         function resizeCanvas() {
              console.log("resizeCanvas: Resizing...");
              if (!canvas || !ctx) return;
-             state.dpr = window.devicePixelRatio || 1; // Update DPR on resize too
-             canvas.width = Math.round(window.innerWidth * state.dpr);
-             canvas.height = Math.round(window.innerHeight * state.dpr);
-             canvas.style.width = `${window.innerWidth}px`;
-             canvas.style.height = `${window.innerHeight}px`;
-             ctx.scale(state.dpr, state.dpr); // Apply scale transformation
-             redrawHistory(); // Redraw content
+
+             // Update DPR in case it changed (e.g., moving window between screens)
+             state.dpr = window.devicePixelRatio || 1;
+
+             // Get the actual viewport size in CSS pixels
+             const cssWidth = window.innerWidth;
+             const cssHeight = window.innerHeight;
+
+             // Set the canvas buffer size based on DPR for sharp rendering
+             canvas.width = Math.round(cssWidth * state.dpr);
+             canvas.height = Math.round(cssHeight * state.dpr);
+
+             // Set the canvas display size to match the viewport
+             canvas.style.width = `${cssWidth}px`;
+             canvas.style.height = `${cssHeight}px`;
+
+             // Scale the canvas context to handle DPR correctly
+             // All drawing commands will now operate in CSS pixel coordinates,
+             // but will be scaled up to the higher resolution buffer.
+             ctx.scale(state.dpr, state.dpr);
+
+             console.log(`resizeCanvas: Set Canvas Size ${canvas.width}x${canvas.height}, CSS Size ${canvas.style.width}x${canvas.style.height}, DPR: ${state.dpr}`);
+
+             // Redraw the current state onto the resized canvas
+             redrawHistory();
+             // Re-draw grid if it was enabled
              if (state.gridEnabled) drawGrid();
-             console.log(`resizeCanvas: Complete. Size ${canvas.width}x${canvas.height} (CSS: ${canvas.style.width}x${canvas.style.height}), DPR: ${state.dpr}`);
+             console.log(`resizeCanvas: Complete.`);
         }
 
+        /**
+         * Gets the pointer position (mouse or touch) relative to the canvas element.
+         * Returns coordinates in CSS pixels.
+         * @param {Event} event - The mouse or touch event.
+         * @returns {{x: number, y: number}} Position relative to canvas top-left, in CSS pixels.
+         */
         function getPos(event) {
-            if (!canvas) return { x: 0, y: 0 }; // Graceful exit if canvas isn't ready
+            if (!canvas) {
+                console.error("getPos called before canvas was ready.");
+                return { x: 0, y: 0 };
+            }
+            // Get the canvas's current bounding box relative to the viewport
             const rect = canvas.getBoundingClientRect();
-            let clientX = 0, clientY = 0;
 
+            let clientX = 0;
+            let clientY = 0;
+            let isTouchEvent = false;
+
+            // Check if it's a touch event
             if (event.touches && event.touches.length > 0) {
+                // Use the coordinates of the first touch point
                 clientX = event.touches[0].clientX;
                 clientY = event.touches[0].clientY;
-            } else if (event.clientX !== undefined) { // Check if it's a mouse event
+                isTouchEvent = true;
+            }
+            // Check if it's a mouse event (or other PointerEvent)
+            else if (event.clientX !== undefined && event.clientY !== undefined) {
                 clientX = event.clientX;
                 clientY = event.clientY;
             } else {
-                console.warn("getPos: Could not determine clientX/Y from event", event);
+                // Log a warning if coordinates couldn't be determined
+                console.warn("getPos: Could not get clientX/Y from event:", event);
+                return { x: 0, y: 0 }; // Return 0,0 as a fallback
             }
 
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            // console.log(`getPos: Raw(${clientX}, ${clientY}), Rect(${rect.left}, ${rect.top}), Result(${x}, ${y})`); // Debug logging
-            return { x, y };
+            // Calculate the position relative to the canvas element's top-left corner.
+            // This gives us the position in CSS pixels.
+            const cssX = clientX - rect.left;
+            const cssY = clientY - rect.top;
+
+            // Optional Debug Log (uncomment to check values on device)
+            // console.log(`getPos (${isTouchEvent ? 'Touch' : 'Mouse'}): Client(${clientX.toFixed(1)}, ${clientY.toFixed(1)}), Rect(${rect.left.toFixed(1)}, ${rect.top.toFixed(1)}), Result CSS(${cssX.toFixed(1)}, ${cssY.toFixed(1)})`);
+
+            return { x: cssX, y: cssY };
         }
 
+
+        /**
+         * Draws a segment based on the current tool, size, color, and brush type.
+         * Operates using CSS pixel coordinates obtained from getPos.
+         * The ctx.scale() applied in resizeCanvas handles the conversion to device pixels.
+         * @param {number} x - Current X position in CSS pixels.
+         * @param {number} y - Current Y position in CSS pixels.
+         */
         function draw(x, y) {
              if (!state.isDrawing || !ctx) return;
 
-             const currentSize = (state.currentTool === 'eraser' ? state.eraserSize : state.penSize) * state.dpr;
-             const canvasX = x * state.dpr;
-             const canvasY = y * state.dpr;
-             const lastCanvasX = state.lastX * state.dpr;
-             const lastCanvasY = state.lastY * state.dpr;
+             // Use the size directly in CSS pixels. The context scaling handles DPR.
+             const currentSize = (state.currentTool === 'eraser' ? state.eraserSize : state.penSize);
+             // lastX/lastY are also stored in CSS pixels
+             const lastCssX = state.lastX;
+             const lastCssY = state.lastY;
 
              ctx.lineCap = 'round';
              ctx.lineJoin = 'round';
 
-             try { // Add try-catch around drawing operations
+             try {
                  if (state.currentTool === 'eraser') {
+                     // Eraser works by clearing pixels
                      ctx.globalCompositeOperation = 'destination-out';
-                     ctx.lineWidth = currentSize;
+                     ctx.lineWidth = currentSize; // Use size in CSS pixels
                      ctx.beginPath();
-                     ctx.moveTo(lastCanvasX, lastCanvasY);
-                     ctx.lineTo(canvasX, canvasY);
+                     ctx.moveTo(lastCssX, lastCssY);
+                     ctx.lineTo(x, y);
                      ctx.stroke();
                  } else {
-                     ctx.globalCompositeOperation = 'source-over';
+                     // Drawing tool
+                     ctx.globalCompositeOperation = 'source-over'; // Default drawing mode
                      ctx.strokeStyle = state.color;
                      ctx.fillStyle = state.color;
-                     ctx.lineWidth = currentSize;
+                     ctx.lineWidth = currentSize; // Use size in CSS pixels
 
                      switch (state.brushType) {
-                          case 'circle': ctx.beginPath(); ctx.arc(canvasX, canvasY, currentSize / 2, 0, Math.PI * 2); ctx.fill(); break;
-                          case 'square': ctx.fillRect(canvasX - currentSize / 2, canvasY - currentSize / 2, currentSize, currentSize); break;
-                          case 'spray': const density = 30; for (let i = 0; i < density; i++) { let angle = Math.random() * Math.PI * 2; let radius = Math.random() * currentSize / 1.5; ctx.fillRect(canvasX + Math.cos(angle) * radius, canvasY + Math.sin(angle) * radius, state.dpr, state.dpr); } break;
-                          case 'heart': drawHeart(canvasX, canvasY, currentSize); break;
-                          case 'star': drawStar(canvasX, canvasY, currentSize); break;
-                          case 'flower': drawFlower(canvasX, canvasY, currentSize); break;
-                          case 'leaf': drawLeaf(canvasX, canvasY, currentSize); break;
-                          case 'diamond': drawDiamond(canvasX, canvasY, currentSize); break;
-                          case 'basic': default: ctx.beginPath(); ctx.moveTo(lastCanvasX, lastCanvasY); ctx.lineTo(canvasX, canvasY); ctx.stroke(); break;
+                          case 'circle':
+                              ctx.beginPath();
+                              ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2); // Use x,y and size in CSS pixels
+                              ctx.fill();
+                              break;
+                          case 'square':
+                              ctx.fillRect(x - currentSize / 2, y - currentSize / 2, currentSize, currentSize); // Use x,y and size in CSS pixels
+                              break;
+                          case 'spray':
+                              const density = 30;
+                              // Spray density should look consistent regardless of DPR, so use CSS pixels for radius/offset
+                              for (let i = 0; i < density; i++) {
+                                   const angle = Math.random() * Math.PI * 2;
+                                   const radius = Math.random() * currentSize / 1.5; // Radius based on CSS size
+                                   // Draw tiny squares (1x1 CSS pixel, which becomes dpr x dpr device pixels)
+                                   ctx.fillRect(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 1, 1);
+                              }
+                              break;
+                          // --- Shape Drawing Helpers --- (Ensure they use CSS pixels for x,y,size)
+                          case 'heart': drawHeart(x, y, currentSize); break;
+                          case 'star': drawStar(x, y, currentSize); break;
+                          case 'flower': drawFlower(x, y, currentSize); break;
+                          case 'leaf': drawLeaf(x, y, currentSize); break;
+                          case 'diamond': drawDiamond(x, y, currentSize); break;
+                          case 'basic':
+                          default:
+                              ctx.beginPath();
+                              ctx.moveTo(lastCssX, lastCssY); // Use CSS pixel coords
+                              ctx.lineTo(x, y);              // Use CSS pixel coords
+                              ctx.stroke();
+                              break;
                      }
                  }
              } catch (error) {
                  console.error("Error during draw operation:", error, "State:", state);
              }
 
+             // Store the current position (in CSS pixels) for the next segment
              state.lastX = x;
              state.lastY = y;
          }
 
-        // --- Shape Drawing Helpers --- (Ensure these use state.color correctly)
+        // --- Shape Drawing Helpers --- (These should work correctly with CSS pixel inputs due to ctx.scale)
         function drawHeart(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.beginPath(); const t=y-size*.3,b=y+size*.7,w=size*1.1,c1x=x+w*.5,c1y=y-size*.6,c2x=x-w*.5,c2y=y-size*.6; ctx.moveTo(x,t); ctx.bezierCurveTo(x,c1y,c1x,c1y,c1x,y); ctx.bezierCurveTo(c1x,y+size*.4,x,b,x,b); ctx.bezierCurveTo(x,b,c2x,y+size*.4,c2x,y); ctx.bezierCurveTo(c2x,c2y,x,c2y,x,t); ctx.closePath(); ctx.fill(); ctx.restore(); }
         function drawStar(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.beginPath(); ctx.moveTo(0,-size/2); for(let i=0;i<5;i++){ ctx.rotate(Math.PI/5); ctx.lineTo(0,-(size/4)); ctx.rotate(Math.PI/5); ctx.lineTo(0,-size/2); } ctx.closePath(); ctx.fill(); ctx.restore(); }
         function drawFlower(x, y, size) { ctx.save(); ctx.fillStyle=state.color; ctx.translate(x,y); ctx.beginPath(); const n=6,r=size/3,a=(Math.PI*2)/n; for(let i=0;i<n;i++){ const px=Math.cos(a*i)*r*.8,py=Math.sin(a*i)*r*.8; ctx.moveTo(px+r,py); ctx.arc(px,py,r,0,Math.PI*2); } ctx.fill(); ctx.restore(); }
@@ -441,61 +540,87 @@
 
         // === Fill Tool ===
         function floodFill(startX, startY) {
-            console.log(`floodFill: Starting at CSS(${startX}, ${startY})`);
+            // NOTE: Flood fill needs to operate on the raw pixel data, so it needs canvas pixel coordinates.
+            console.log(`floodFill: Starting at CSS(${startX.toFixed(1)}, ${startY.toFixed(1)})`);
              if (!ctx) { console.error("floodFill: No context"); return false; }
 
+             // Convert CSS pixel start point to Canvas pixel start point
              const canvasX = Math.floor(startX * state.dpr);
              const canvasY = Math.floor(startY * state.dpr);
-             const canvasWidth = canvas.width;
+             const canvasWidth = canvas.width;  // Use the actual buffer width/height
              const canvasHeight = canvas.height;
 
-             if (canvasX < 0 || canvasX >= canvasWidth || canvasY < 0 || canvasY >= canvasHeight) { console.log("floodFill: Start point out of bounds."); return false; }
+             // Boundary check using canvas pixel coordinates
+             if (canvasX < 0 || canvasX >= canvasWidth || canvasY < 0 || canvasY >= canvasHeight) {
+                 console.log("floodFill: Start point out of canvas bounds.");
+                 return false;
+             }
 
              let imageData;
              try {
+                 // Get image data from the entire canvas buffer
                  imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
              } catch (e) {
                  console.error("floodFill: Failed to getImageData.", e);
-                 // Handle potential security errors (tainted canvas) if loading external images
                  alert("Tidak dapat mengisi warna pada gambar ini karena alasan keamanan.");
                  return false;
              }
              const data = imageData.data;
-             const targetColor = getPixelColor(data, canvasWidth, canvasX, canvasY);
+             const targetColor = getPixelColor(data, canvasWidth, canvasX, canvasY); // Get color at canvas pixel coords
              const fillColorRgb = hexToRgb(state.color);
 
              if (!fillColorRgb) { console.error("floodFill: Invalid fill color", state.color); return false; }
-             if (colorsMatch(targetColor, fillColorRgb)) { console.log("floodFill: Target matches fill color."); return false; }
+             // Check if the target area is already the fill color (using a tolerance)
+             if (colorsMatch(targetColor, fillColorRgb)) {
+                 console.log("floodFill: Target area already matches fill color.");
+                 return false;
+             }
 
-             const stack = [[canvasX, canvasY]];
-             const visited = new Set();
+             const stack = [[canvasX, canvasY]]; // Stack uses canvas pixel coordinates
+             const visited = new Set(); // Store visited canvas pixel coordinates as strings "x,y"
              let iterations = 0;
-             const maxIterations = canvasWidth * canvasHeight * 1.5; // Safety limit
+             const maxIterations = canvasWidth * canvasHeight * 1.5; // Safety limit against infinite loops
 
              while (stack.length > 0) {
                  iterations++;
-                 if (iterations > maxIterations) { console.error("floodFill: Max iterations reached, aborting."); break; }
+                 if (iterations > maxIterations) {
+                     console.error("floodFill: Max iterations reached, aborting fill.");
+                     alert("Gagal mengisi area yang terlalu kompleks."); // User feedback
+                     return false; // Indicate failure
+                 }
 
-                 const [x, y] = stack.pop();
-                 const pixelKey = `${x},${y}`;
+                 const [x, y] = stack.pop(); // Current canvas pixel coords
+                 const pixelKey = `${x},${y}`; // Key for visited set
 
-                 if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight || visited.has(pixelKey)) continue;
+                 // Bounds check and visited check (using canvas pixel coords)
+                 if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight || visited.has(pixelKey)) {
+                     continue;
+                 }
 
-                 const currentColor = getPixelColor(data, canvasWidth, x, y);
-                 if (!colorsMatch(currentColor, targetColor)) continue;
+                 const currentColor = getPixelColor(data, canvasWidth, x, y); // Get color at canvas pixel coords
 
+                 // Check if the current pixel matches the target color (with tolerance)
+                 if (!colorsMatch(currentColor, targetColor)) {
+                     continue;
+                 }
+
+                 // Set the pixel color (using canvas pixel coords)
                  setPixelColor(data, canvasWidth, x, y, fillColorRgb);
-                 visited.add(pixelKey);
+                 visited.add(pixelKey); // Mark as visited
 
-                 stack.push([x + 1, y]); stack.push([x - 1, y]);
-                 stack.push([x, y + 1]); stack.push([x, y - 1]);
+                 // Push neighbors onto the stack (using canvas pixel coords)
+                 stack.push([x + 1, y]);
+                 stack.push([x - 1, y]);
+                 stack.push([x, y + 1]);
+                 stack.push([x, y - 1]);
              }
 
+             // Put the modified image data back onto the canvas
              ctx.putImageData(imageData, 0, 0);
              console.log(`floodFill: Complete. ${visited.size} pixels filled in ${iterations} iterations.`);
-             return true;
+             return true; // Indicate success
          }
-        // Fill Helpers
+        // Fill Helpers (operate on raw image data array and canvas pixel coords)
         function getPixelColor(d,w,x,y){ const i=(y*w+x)*4; return [d[i],d[i+1],d[i+2],d[i+3]]; }
         function setPixelColor(d,w,x,y,c){ const i=(y*w+x)*4; d[i]=c.r; d[i+1]=c.g; d[i+2]=c.b; d[i+3]=c.a??255; }
         function colorsMatch(c1,c2){ const t=15; return Math.abs(c1[0]-c2.r)<=t && Math.abs(c1[1]-c2.g)<=t && Math.abs(c1[2]-c2.b)<=t && Math.abs(c1[3]-(c2.a??255))<=t; }
@@ -505,23 +630,39 @@
         // === History ===
         function saveHistory() {
              console.log("saveHistory: Saving state. Current step:", state.historyStep);
-             if (!canvas) return; // Don't save if canvas isn't ready
+             if (!canvas || !ctx) return;
+
+             // Trim future history if we are undoing and then drawing
              if (state.historyStep < state.history.length - 1) {
-                 state.history.length = state.historyStep + 1; // Clear redo steps
+                 state.history.length = state.historyStep + 1;
              }
+
+             // Manage history size limit
              if (state.history.length >= state.maxHistory) {
-                 state.history.shift(); // Remove oldest
+                 state.history.shift(); // Remove the oldest state
+                 // Don't decrement historyStep here, it stays at maxHistory-1
              } else {
-                 state.historyStep++;
+                 state.historyStep++; // Increment step only if not replacing the last item due to limit
              }
+
              try {
+                 // Save the current canvas state as a data URL
+                 // Important: Ensure canvas content is ready before calling toDataURL
+                 // requestAnimationFrame might be needed if drawing is complex, but usually direct call is fine after draw operations.
                  state.history[state.historyStep] = canvas.toDataURL('image/png');
                  console.log("saveHistory: State saved. New step:", state.historyStep, "History length:", state.history.length);
                  updateUndoRedoButtons();
              } catch (error) {
-                 console.error("saveHistory: Failed to save canvas state (toDataURL failed).", error);
-                 // Could be due to tainted canvas or other issues
-                 if (state.historyStep > 0) state.historyStep--; // Revert step count if save failed
+                 console.error("saveHistory: Failed to save canvas state (toDataURL failed). Tainted canvas?", error);
+                 // If save failed, revert the history step adjustment
+                 if (state.historyStep > 0 && state.history.length <= state.historyStep ) { // Check if step was wrongly incremented
+                      state.historyStep--;
+                 } else if (state.history.length >= state.maxHistory) {
+                     // If we shifted, we can't easily undo that, but ensure step is valid
+                     state.historyStep = Math.min(state.historyStep, state.history.length - 1);
+                 }
+                 alert("Gagal menyimpan langkah (undo/redo mungkin tidak akurat).");
+                 updateUndoRedoButtons();
              }
          }
         function undo() {
@@ -547,31 +688,48 @@
          function redrawFromHistory(step) {
              console.log("redrawFromHistory: Redrawing step", step);
              if (!ctx) { console.error("redrawFromHistory: No context."); return; }
+
+             // Handle cases: invalid step, or step 0 which might be empty or the initial state
              if (step < 0 || step >= state.history.length || !state.history[step]) {
-                 console.warn(`redrawFromHistory: Invalid step or history data for step ${step}. Clearing canvas.`);
+                 console.warn(`redrawFromHistory: Invalid step (${step}) or history data missing. Clearing canvas.`);
+                 // Clear canvas using CSS dimensions because context is scaled
                  const cssWidth = canvas.width / state.dpr;
                  const cssHeight = canvas.height / state.dpr;
-                 ctx.clearRect(0, 0, cssWidth, cssHeight);
-                 if(step < 0 && state.history.length === 0) {
-                     // If history is truly empty, reset step index
+                 // Reset transform before clearing might be safer if scale changed unexpectedly
+                 // ctx.save();
+                 // ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to identity
+                 ctx.clearRect(0, 0, cssWidth * state.dpr, cssHeight * state.dpr); // Clear using canvas buffer size might be better
+                 // ctx.restore(); // Restore original transform (scale)
+
+                 // If history is truly empty, reset step index
+                 if (step < 0 && state.history.length === 0) {
                      state.historyStep = -1;
                  }
-                 updateUndoRedoButtons(); // Ensure buttons are disabled if history empty
+                 // Ensure buttons reflect the inability to undo further back
+                 updateUndoRedoButtons();
                  return;
              }
 
              let img = new Image();
              img.onload = () => {
                  console.log("redrawFromHistory: Image loaded for step", step);
+                 // Dimensions needed for drawImage are CSS dimensions because the context is scaled
                  const cssWidth = canvas.width / state.dpr;
                  const cssHeight = canvas.height / state.dpr;
-                 ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear scaled canvas
-                 ctx.drawImage(img, 0, 0, cssWidth, cssHeight); // Draw scaled image
-                 if (state.gridEnabled) drawGrid(); // Re-apply grid if needed
+
+                 // Clear the canvas first (using CSS dimensions)
+                 ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+                 // Draw the history image onto the scaled context
+                 // The image itself is at the native resolution, but drawImage respects the context scale
+                 ctx.drawImage(img, 0, 0, cssWidth, cssHeight);
+
+                 // Re-apply grid if needed AFTER drawing the history image
+                 if (state.gridEnabled) drawGrid();
                  console.log("redrawFromHistory: Redraw complete for step", step);
              };
-             img.onerror = () => console.error(`redrawFromHistory: Failed to load history image for step ${step}`);
-             img.src = state.history[step];
+             img.onerror = (err) => console.error(`redrawFromHistory: Failed to load history image for step ${step}`, err);
+             img.src = state.history[step]; // Load the saved data URL
          }
          function redrawHistory() { redrawFromHistory(state.historyStep); }
          function updateUndoRedoButtons() {
@@ -582,28 +740,41 @@
 
         // === Grid ===
         function drawGrid() {
-            // console.log("drawGrid: Drawing grid.");
+            // Draws grid lines based on CSS pixel dimensions
             if (!ctx || !state.gridEnabled) return;
             const cssWidth = canvas.width / state.dpr;
             const cssHeight = canvas.height / state.dpr;
-            const gridSize = 30;
-            ctx.save();
+            const gridSize = 30; // Grid size in CSS pixels
+
+            ctx.save(); // Save current state (like strokeStyle, lineWidth)
             ctx.strokeStyle = 'var(--grid-color)';
-            ctx.lineWidth = 0.5; // Keep grid lines thin regardless of DPR
-            ctx.globalCompositeOperation = 'source-over'; // Ensure grid draws on top correctly
+            // Ensure grid lines are thin, regardless of DPR. Apply lineWidth *after* scaling.
+            // A line width of 1 in the scaled context becomes 1 physical pixel if dpr=1, 0.5 physical pixels if dpr=2 etc.
+            // To get a consistent *physical* pixel width (e.g., 1 physical pixel), set lineWidth = 1 / state.dpr
+            ctx.lineWidth = 1 / state.dpr;
+            ctx.globalCompositeOperation = 'source-over'; // Ensure grid draws on top
             ctx.setLineDash([2, 2]); // Optional: Dashed grid lines
 
+            // Draw vertical lines
             for (let x = gridSize; x < cssWidth; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cssHeight); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, cssHeight);
+                ctx.stroke();
             }
+            // Draw horizontal lines
             for (let y = gridSize; y < cssHeight; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cssWidth, y); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(cssWidth, y);
+                ctx.stroke();
             }
-            ctx.restore(); // Restore line dash, stroke style etc.
+            ctx.restore(); // Restore previous strokeStyle, lineWidth, lineDash etc.
         }
 
         // === UI Updates ===
         function toggleOptionsPanel() {
+            // ... (no changes needed here)
             console.log("toggleOptionsPanel: Current state:", state.isPanelOpen);
             if (!optionsPanel || !optionsButton) return;
             state.isPanelOpen = !state.isPanelOpen;
@@ -611,86 +782,99 @@
             optionsButton.setAttribute('aria-expanded', state.isPanelOpen);
             const buttonTextSpan = optionsButton.querySelector('.button-text');
             if(buttonTextSpan) buttonTextSpan.textContent = state.isPanelOpen ? 'Tutup' : 'Opsi';
-            // Icon change handled by CSS rotation on aria-expanded
             console.log("toggleOptionsPanel: New state:", state.isPanelOpen);
         }
 
         function updateToolUI() {
+             // ... (no changes needed here)
              console.log("updateToolUI: Updating for tool:", state.currentTool, "Brush type:", state.brushType, "Grid:", state.gridEnabled);
              if (!brushButton || !eraserButton || !fillButton || !gridButton) {
                  console.warn("updateToolUI: Some tool buttons not found.");
              }
-             // Update tool buttons
              if(brushButton) brushButton.classList.toggle('active-tool', state.currentTool === 'brush');
              if(eraserButton) eraserButton.classList.toggle('active-tool', state.currentTool === 'eraser');
              if(fillButton) fillButton.classList.toggle('active-tool', state.currentTool === 'fill');
 
-             // Update brush type buttons
              brushTypeButtons.forEach(btn => {
                  if (!btn) return;
                  const type = btn.dataset.brush;
                  btn.classList.toggle('active-tool', state.currentTool === 'brush' && state.brushType === type);
              });
 
-             // Update canvas cursor
              if (canvas) {
                  switch (state.currentTool) {
                      case 'brush': canvas.style.cursor = 'crosshair'; break;
-                     case 'eraser': canvas.style.cursor = 'cell'; break;
+                     case 'eraser': canvas.style.cursor = 'cell'; break; // Or a custom eraser cursor
                      case 'fill': canvas.style.cursor = 'copy'; break;
                      default: canvas.style.cursor = 'default';
                  }
              }
-
-             // Update grid button state
              if(gridButton) gridButton.classList.toggle('active-tool', state.gridEnabled);
         }
 
         // === Event Handlers ===
         function handleStart(e) {
-            // console.log("handleStart: Event type:", e.type);
-            e.preventDefault();
-            const { x, y } = getPos(e);
-            // console.log(`handleStart: Pos (${x}, ${y}), Tool: ${state.currentTool}`);
+            // Crucial: Prevent default touch actions like scrolling only if it's a touch event
+            // The { passive: false } in addEventListener allows this.
+            if (e.type.startsWith('touch')) {
+                e.preventDefault();
+            }
+
+            const { x, y } = getPos(e); // Get position in CSS pixels
+            // console.log(`handleStart: Pos CSS(${x.toFixed(1)}, ${y.toFixed(1)}), Tool: ${state.currentTool}`);
 
             if (state.currentTool === 'fill') {
+                 // Flood fill expects CSS pixel coords, it converts internally
                  if (floodFill(x, y)) {
-                     saveHistory();
+                     saveHistory(); // Save history *after* successful fill
                  }
              } else {
                  state.isDrawing = true;
+                 // Store starting position in CSS pixels
                  state.lastX = x;
                  state.lastY = y;
+                 // For non-line brushes, draw the first shape immediately at the start point
                  if (state.currentTool === 'brush' && state.brushType !== 'basic') {
-                     draw(x, y); // Draw initial shape for non-line brushes
+                     draw(x, y); // Draw using CSS pixel coords
                  }
-                 saveHistory(); // Save at start of stroke/erase
+                 // Save state at the beginning of a stroke/erase action
+                 saveHistory();
              }
         }
         function handleMove(e) {
-            e.preventDefault();
+             // Prevent default touch actions like scrolling during move
+             if (e.type.startsWith('touch')) {
+                e.preventDefault();
+            }
+            // Only draw if currently drawing and not using fill tool
             if (!state.isDrawing || state.currentTool === 'fill') return;
-            const { x, y } = getPos(e);
-            // console.log(`handleMove: Pos (${x}, ${y})`); // Can be very noisy
-            draw(x, y);
+
+            const { x, y } = getPos(e); // Get current position in CSS pixels
+            // console.log(`handleMove: Pos CSS(${x.toFixed(1)}, ${y.toFixed(1)})`); // Can be noisy
+            draw(x, y); // Draw using CSS pixel coords
         }
         function handleEnd(e) {
+            // Prevent default actions if necessary (less critical on end, but good practice)
+             if (e.type.startsWith('touch')) {
+                e.preventDefault();
+            }
             // console.log("handleEnd: Event type:", e.type);
-            e.preventDefault();
             if (state.isDrawing) {
                 state.isDrawing = false;
                  // console.log("handleEnd: Drawing stopped.");
-                 // Optional: If you get stray lines, uncommenting this might help
+                 // Optional: Reset path to prevent stray lines on next start, though lineCap/Join should handle most cases
                  // if(ctx) ctx.beginPath();
              }
         }
         function handleToolChange(newTool) {
+            // ... (no changes needed here)
             console.log("handleToolChange: Changing tool to", newTool);
             if (state.currentTool === newTool) return; // No change
             state.currentTool = newTool;
             updateToolUI();
         }
         function handleBrushTypeChange(newType) {
+            // ... (no changes needed here)
             console.log("handleBrushTypeChange: Changing brush type to", newType);
              if (!newType) { console.warn("handleBrushTypeChange: Invalid type received."); return; }
             if (state.brushType === newType && state.currentTool === 'brush') return; // No change
@@ -717,14 +901,20 @@
             } else { console.error("Options button not found for listener."); }
 
             if (canvas) {
+                // Mouse Events
                 canvas.addEventListener('mousedown', handleStart);
                 canvas.addEventListener('mousemove', handleMove);
                 canvas.addEventListener('mouseup', handleEnd);
-                canvas.addEventListener('mouseout', handleEnd); // Stop drawing if mouse leaves
+                canvas.addEventListener('mouseleave', handleEnd); // Use mouseleave instead of out
+
+                // Touch Events
+                // Use passive: false to allow preventDefault() inside handlers
+                // This is critical for stopping scrolling/zooming while drawing on touch devices
                 canvas.addEventListener('touchstart', handleStart, { passive: false });
                 canvas.addEventListener('touchmove', handleMove, { passive: false });
-                canvas.addEventListener('touchend', handleEnd);
-                canvas.addEventListener('touchcancel', handleEnd);
+                canvas.addEventListener('touchend', handleEnd, { passive: false }); // Also prevent default on end if needed
+                canvas.addEventListener('touchcancel', handleEnd, { passive: false }); // Handle cancelled touches
+
                  console.log("setupEventListeners: Canvas listeners attached.");
              } else { console.error("Canvas not found for listeners."); }
 
@@ -734,11 +924,11 @@
              } else { console.warn("Color Picker not found."); }
 
             if (penSizeSlider && penSizeValueSpan) {
-                penSizeSlider.addEventListener('input', (e) => { state.penSize = e.target.value; penSizeValueSpan.textContent = state.penSize; /* console.log("Pen size:", state.penSize); */ });
+                penSizeSlider.addEventListener('input', (e) => { state.penSize = parseInt(e.target.value, 10); penSizeValueSpan.textContent = state.penSize; });
             } else { console.warn("Pen size slider/span not found."); }
 
             if (eraserSizeSlider && eraserSizeValueSpan) {
-                 eraserSizeSlider.addEventListener('input', (e) => { state.eraserSize = e.target.value; eraserSizeValueSpan.textContent = state.eraserSize; /* console.log("Eraser size:", state.eraserSize); */ });
+                 eraserSizeSlider.addEventListener('input', (e) => { state.eraserSize = parseInt(e.target.value, 10); eraserSizeValueSpan.textContent = state.eraserSize; });
              } else { console.warn("Eraser size slider/span not found."); }
 
             // Tool Buttons
@@ -757,51 +947,201 @@
                      });
                  } else { console.warn("Brush dropdown button not found."); }
 
-                 console.log(`setupEventListeners: Found ${brushTypeButtons.length} brush type buttons.`);
                  brushTypeButtons.forEach((button, index) => {
                      if(button && button.dataset.brush) {
                          button.addEventListener('click', () => handleBrushTypeChange(button.dataset.brush));
-                     } else {
-                         console.warn(`Brush type button ${index} or its data-brush attribute is invalid.`);
-                     }
+                     } else { console.warn(`Brush type button ${index} or its data-brush attribute is invalid.`); }
                  });
              } else { console.warn("Brush dropdown container not found."); }
 
              // Action Buttons
              if(undoButton) undoButton.addEventListener('click', undo); else console.warn("Undo button not found.");
              if(redoButton) redoButton.addEventListener('click', redo); else console.warn("Redo button not found.");
-             if(clearButton) clearButton.addEventListener('click', () => { console.log("Clear button clicked."); if(ctx){ const cw = canvas.width/state.dpr, ch = canvas.height/state.dpr; ctx.clearRect(0,0,cw,ch);} saveHistory(); if(state.gridEnabled) drawGrid(); }); else console.warn("Clear button not found.");
-             if(gridButton) gridButton.addEventListener('click', () => { console.log("Grid button clicked."); state.gridEnabled = !state.gridEnabled; redrawHistory(); updateToolUI(); }); else console.warn("Grid button not found.");
+             if(clearButton) clearButton.addEventListener('click', () => {
+                  console.log("Clear button clicked.");
+                  if(ctx && canvas){
+                      // Clear using CSS dimensions as context is scaled
+                      const cssWidth = canvas.width / state.dpr;
+                      const cssHeight = canvas.height / state.dpr;
+                      ctx.clearRect(0,0, cssWidth, cssHeight);
+                      saveHistory(); // Save the cleared state
+                      if(state.gridEnabled) drawGrid(); // Redraw grid if needed
+                  }
+             }); else console.warn("Clear button not found.");
+             if(gridButton) gridButton.addEventListener('click', () => {
+                 console.log("Grid button clicked.");
+                 state.gridEnabled = !state.gridEnabled;
+                 redrawHistory(); // Redraw current history state (which will include/exclude grid draw)
+                 updateToolUI();
+             }); else console.warn("Grid button not found.");
 
-             // File Buttons
-             if(saveButton) saveButton.addEventListener('click', () => { console.log("Save button clicked."); try { const tempC=document.createElement('canvas'); tempC.width=canvas.width; tempC.height=canvas.height; const tempCtx=tempC.getContext('2d'); const img=new Image(); img.onload=()=>{ tempCtx.drawImage(img,0,0); const dataURL=tempC.toDataURL('image/png'); const link=document.createElement('a'); link.href=dataURL; link.download='keyzia-drawing-modern.png'; link.click(); console.log("Image save initiated.");}; img.onerror=()=>{ throw new Error("History load failed"); }; if(!state.history[state.historyStep]) { throw new Error("No history state to save.");} img.src=state.history[state.historyStep]; } catch(e){ console.error("Save error:",e); alert("Gagal menyimpan gambar.");}}); else console.warn("Save button not found.");
+             // File Buttons (Save function needs adjustment for clean saving without grid/UI)
+             if(saveButton) saveButton.addEventListener('click', async () => {
+                console.log("Save button clicked.");
+                if (!ctx || !canvas || state.historyStep < 0 || !state.history[state.historyStep]) {
+                    alert("Tidak ada yang bisa disimpan.");
+                    console.error("Save failed: No context, canvas, or history state.");
+                    return;
+                }
+                try {
+                    // Create a temporary canvas to draw the final image without the grid
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const img = new Image();
+
+                    // Use a Promise to handle image loading asynchronously
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = state.history[state.historyStep]; // Load the relevant history state
+                    });
+
+                    // Set temp canvas dimensions to match the original buffer size
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+
+                    // Draw the loaded image onto the temporary canvas
+                    // No scaling needed here as we draw image directly to same-sized canvas buffer
+                    tempCtx.drawImage(img, 0, 0);
+
+                    // Convert the temporary canvas to a Data URL
+                    const dataURL = tempCanvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = 'keyzia-drawing-modern.png';
+                    link.click();
+                    console.log("Image save initiated from temp canvas.");
+
+                } catch (e) {
+                    console.error("Save error:", e);
+                    alert("Gagal menyimpan gambar.");
+                }
+            }); else console.warn("Save button not found.");
+
+            // Upload Button
              if(uploadButton && imageUploadInput) uploadButton.addEventListener('click', () => { console.log("Upload button clicked."); imageUploadInput.click(); }); else console.warn("Upload button or input not found.");
-             if(imageUploadInput) imageUploadInput.addEventListener('change', (e) => { console.log("Image file selected."); const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=(ev)=>{ const img=new Image(); img.onload=()=>{ console.log("Uploaded image loaded."); const cw=canvas.width/state.dpr, ch=canvas.height/state.dpr; if(ctx){ctx.clearRect(0,0,cw,ch); ctx.drawImage(img,0,0,cw,ch);} saveHistory(); if(state.gridEnabled) drawGrid();}; img.onerror=()=>{alert("Gagal memuat gambar."); console.error("Uploaded image load error.");}; img.src=ev.target.result;}; reader.onerror=()=>{alert("Gagal membaca file."); console.error("File reader error.");}; reader.readAsDataURL(file); e.target.value=null; }); else console.warn("Image upload input not found.");
-             if(shareButton) shareButton.addEventListener('click', async () => { console.log("Share button clicked."); try { const tempC=document.createElement('canvas'); tempC.width=canvas.width; tempC.height=canvas.height; const tempCtx=tempC.getContext('2d'); const img=new Image(); img.onload=()=>{tempCtx.drawImage(img,0,0); tempC.toBlob(async(blob)=>{ if(!blob) throw new Error("Blob creation failed."); const file=new File([blob],'kz-draw.png',{type:'image/png'}); const shareData={title:'Keyzia Draw',text:'Gambar saya!',files:[file]}; if(navigator.share && navigator.canShare && navigator.canShare(shareData)){ await navigator.share(shareData); console.log('Shared via API.');} else { console.log('Share API not supported, fallback download.'); saveButton.click(); alert('Fitur bagikan tidak didukung, gambar akan diunduh.');}},'image/png');}; img.onerror=()=>{ throw new Error("History load failed for share.");}; if(!state.history[state.historyStep]) { throw new Error("No history state to share.");} img.src=state.history[state.historyStep]; } catch(e){ console.error('Share error:',e); alert(`Gagal berbagi: ${e.message}`); saveButton.click();}}); else console.warn("Share button not found.");
+             if(imageUploadInput) imageUploadInput.addEventListener('change', (e) => {
+                  console.log("Image file selected.");
+                  const file=e.target.files[0];
+                  if(!file || !file.type.startsWith('image/')) {
+                      console.warn("No valid image file selected.");
+                      e.target.value = null; // Reset input
+                      return;
+                  }
+                  const reader=new FileReader();
+                  reader.onload=(ev)=>{
+                      const img=new Image();
+                      img.onload=()=>{
+                          console.log("Uploaded image loaded.");
+                          if(ctx && canvas) {
+                              // Get CSS dimensions for drawing
+                              const cssWidth = canvas.width / state.dpr;
+                              const cssHeight = canvas.height / state.dpr;
+                              // Clear canvas first
+                              ctx.clearRect(0,0,cssWidth, cssHeight);
+                              // Draw image respecting aspect ratio, fitting within canvas
+                              const hRatio = cssWidth / img.width;
+                              const vRatio = cssHeight / img.height;
+                              const ratio = Math.min(hRatio, vRatio); // Fit within bounds
+                              const centerShiftX = (cssWidth - img.width * ratio) / 2;
+                              const centerShiftY = (cssHeight - img.height * ratio) / 2;
+                              ctx.drawImage(img, 0, 0, img.width, img.height,
+                                            centerShiftX, centerShiftY, img.width * ratio, img.height * ratio);
+                              saveHistory(); // Save the state with the uploaded image
+                              if(state.gridEnabled) drawGrid(); // Redraw grid if enabled
+                          }
+                      };
+                      img.onerror=()=>{alert("Gagal memuat gambar yang diunggah."); console.error("Uploaded image load error.");};
+                      img.src=ev.target.result;
+                  };
+                  reader.onerror=()=>{alert("Gagal membaca file gambar."); console.error("File reader error.");};
+                  reader.readAsDataURL(file);
+                  e.target.value=null; // Reset file input
+             }); else console.warn("Image upload input not found.");
+
+             // Share Button (uses similar logic to save for creating a clean image blob)
+            if(shareButton) shareButton.addEventListener('click', async () => {
+                console.log("Share button clicked.");
+                if (!navigator.share || !navigator.canShare) {
+                     console.log('Web Share API not supported, falling back to download.');
+                     alert('Fitur bagikan tidak didukung di browser ini. Gambar akan diunduh.');
+                     saveButton?.click(); // Trigger download instead
+                     return;
+                 }
+                 if (!ctx || !canvas || state.historyStep < 0 || !state.history[state.historyStep]) {
+                    alert("Tidak ada yang bisa dibagikan.");
+                    console.error("Share failed: No context, canvas, or history state.");
+                    return;
+                }
+
+                try {
+                    // Create blob from a clean temporary canvas (like in save)
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const img = new Image();
+
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = state.history[state.historyStep];
+                    });
+
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    tempCtx.drawImage(img, 0, 0);
+
+                    // Convert temp canvas to blob
+                    tempCanvas.toBlob(async (blob) => {
+                        if (!blob) { throw new Error("Canvas to Blob conversion failed."); }
+
+                        const file = new File([blob], 'keyzia-drawing.png', { type: 'image/png' });
+                        const shareData = {
+                            title: 'Keyzia Draw Modern',
+                            text: 'Lihat gambar yang saya buat!',
+                            files: [file],
+                        };
+
+                        if (navigator.canShare(shareData)) {
+                            await navigator.share(shareData);
+                            console.log('Image shared successfully via Web Share API.');
+                        } else {
+                            console.warn('Browser reported it cannot share this data, falling back to download.');
+                            alert('Tidak dapat membagikan file ini, gambar akan diunduh.');
+                            saveButton?.click();
+                        }
+                    }, 'image/png'); // Specify PNG format for blob
+
+                } catch (e) {
+                    console.error('Share error:', e);
+                    alert(`Gagal berbagi: ${e.message}. Gambar akan diunduh.`);
+                    saveButton?.click(); // Fallback to download on error
+                }
+            }); else console.warn("Share button not found.");
+
 
             // Keyboard Shortcuts
             window.addEventListener('keydown', (e) => {
-                 // Ignore shortcuts if typing in an input potentially added later
-                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return; // Ignore if typing
 
                  let handled = false;
-                 if (e.ctrlKey || e.metaKey) {
+                 if (e.ctrlKey || e.metaKey) { // Ctrl on Win/Linux, Cmd on Mac
                      switch (e.key.toLowerCase()) {
-                         case 'z': undo(); handled = true; break;
-                         case 'y': redo(); handled = true; break;
-                         case 's': saveButton?.click(); handled = true; break; // Check if button exists
+                         case 'z': if(!undoButton?.disabled) undo(); handled = true; break;
+                         case 'y': if(!redoButton?.disabled) redo(); handled = true; break;
+                         case 's': if(saveButton) { saveButton.click(); handled = true; } break;
                      }
-                 } else {
+                 } else if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) { // Simple key presses
                      switch (e.key.toLowerCase()) {
-                         case 'b': handleToolChange('brush'); handled = true; break;
-                         case 'e': handleToolChange('eraser'); handled = true; break;
-                         case 'f': handleToolChange('fill'); handled = true; break;
-                         case 'g': gridButton?.click(); handled = true; break; // Check if button exists
+                         case 'b': if(brushButton) handleToolChange('brush'); handled = true; break;
+                         case 'e': if(eraserButton) handleToolChange('eraser'); handled = true; break;
+                         case 'f': if(fillButton) handleToolChange('fill'); handled = true; break;
+                         case 'g': if(gridButton) gridButton.click(); handled = true; break;
+                         // Add more single-key shortcuts if desired (e.g., numbers for colors?)
                      }
                  }
                  if (handled) {
-                     console.log("Keyboard shortcut handled:", e.key);
-                     e.preventDefault(); // Prevent default browser action (like save page)
+                     console.log("Keyboard shortcut handled:", e.key, "Ctrl/Meta:", e.ctrlKey || e.metaKey);
+                     e.preventDefault(); // Prevent default browser actions (like save page, find)
                  }
              });
 
@@ -809,15 +1149,17 @@
             let resizeTimeout;
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(resizeCanvas, 150);
+                resizeTimeout = setTimeout(resizeCanvas, 150); // Debounce resize events
             });
+
+            // Prevent context menu on canvas (optional, prevents right-click save image etc.)
+            canvas?.addEventListener('contextmenu', e => e.preventDefault());
 
             console.log("setupEventListeners: Listeners attached.");
         }
 
         // === Start ===
-        // Use DOMContentLoaded which fires earlier than 'load' often
-        // window.addEventListener('load', initializeApp);
+        // Use DOMContentLoaded for faster initialization
         window.addEventListener('DOMContentLoaded', initializeApp);
 
     </script>
