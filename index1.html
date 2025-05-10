@@ -9,6 +9,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5cb85c">
+    
+
+    <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(function(registration) {
+      console.log('Service Worker terdaftar:', registration);
+    })
+    .catch(function(error) {
+      console.log('Pendaftaran Service Worker gagal:', error);
+    });
+}
+    </script>
+    
     <style>
         :root {
             --primary-color: #5cb85c;
@@ -1028,6 +1044,41 @@
         window.addEventListener('DOMContentLoaded', initializeApp);
 
     </script>
+
+    <script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Tampilkan tombol install jika mau
+  const installBtn = document.createElement("button");
+  installBtn.textContent = "Install Aplikasi";
+  installBtn.style.position = "fixed";
+  installBtn.style.bottom = "20px";
+  installBtn.style.right = "20px";
+  installBtn.style.zIndex = "10000";
+  installBtn.style.padding = "10px";
+  installBtn.style.background = "#5cb85c";
+  installBtn.style.color = "#fff";
+  installBtn.style.border = "none";
+  installBtn.style.borderRadius = "5px";
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener("click", () => {
+    installBtn.remove();
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted install');
+      } else {
+        console.log('User dismissed install');
+      }
+      deferredPrompt = null;
+    });
+  });
+});
+    </script>
+    
 </body>
 
 </html>
